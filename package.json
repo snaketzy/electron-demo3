@@ -1,9 +1,9 @@
 {
-  "name": "electron-demo2",
-  "description": "测试Electron技术的掌握程度，整合Puppeteer的方案",
+  "name": "electron-demo3",
+  "description": "测试Electron技术的掌握程度，整合puppeteer-in-electron的方案",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/snaketzy/electron-demo2.git",
+  "repository": "https://github.com/snaketzy/electron-demo3.git",
   "author": "Jerry Tang <snaketzy@gmail.com>",
   "license": "MIT",
   "scripts": {
