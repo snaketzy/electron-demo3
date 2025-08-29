@@ -1,6 +1,7 @@
 const {BrowserWindow, app} = require("electron");
 const pie = require("puppeteer-in-electron")
 const puppeteer = require("puppeteer-core");
+const { createCursor } = require('ghost-cursor');
 
 const main = async () => {
   await pie.initialize(app);
@@ -27,6 +28,7 @@ const main = async () => {
   
   await page.waitForSelector('a[target="_self"]');
 
+  const cursor = createCursor(page);
   const element = await page.$("div.flex-vertical");
   
   // 获取元素坐标和尺寸
@@ -36,7 +38,8 @@ const main = async () => {
   const x = boundingBox.x + boundingBox.width / 2;
   const y = boundingBox.y + boundingBox.height / 2;
   
-  await page.mouse.move(x, y, { steps: 20 });
+  // await page.mouse.move(x, y, { steps: 20 });
+  await cursor.move(element)
 
 };
 
