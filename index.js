@@ -1,7 +1,7 @@
 const {BrowserWindow, app} = require("electron");
 const pie = require("puppeteer-in-electron")
 const puppeteer = require("puppeteer-core");
-const { createCursor } = require('ghost-cursor');
+const { createCursor, installMouseHelper } = require('ghost-cursor');
 
 const main = async () => {
   await pie.initialize(app);
@@ -28,19 +28,32 @@ const main = async () => {
   
   await page.waitForSelector('a[target="_self"]');
 
+  await installMouseHelper(page);
   const cursor = createCursor(page);
-  const element = await page.$("div.flex-vertical");
+
+  const element1 = await page.$("div.flex-vertical");
+  const element2 = await page.$(".ms-nav li:last-child");
+  // const element = await cursor.getElement("div.flex-vertical")
+  const location = await cursor.getLocation(element1)
   
   // 获取元素坐标和尺寸
-  const boundingBox = await element.boundingBox();
+  const boundingBox = await element1.boundingBox();
    
   // 计算元素中心点坐标
   const x = boundingBox.x + boundingBox.width / 2;
   const y = boundingBox.y + boundingBox.height / 2;
   
-  // await page.mouse.move(x, y, { steps: 20 });
-  await cursor.move(element)
+  function delay(time) {
+   return new Promise(function(resolve) { 
+       setTimeout(resolve, time)
+   });
+}
 
+  // await page.mouse.move(x, y, { steps: 20 });
+  await cursor.move(element1)
+  await delay(2000)
+  await cursor.move(element2)
+  await cursor.click()
 };
 
 main();
