@@ -84,8 +84,8 @@ const test3 = async(page) => {
     const text = await frame.$eval('div.add-btn', ele => ele.textContent);
     // await frame.click(element,{debugHighlight: true,})
     console.log(text);
-    
-    
+    const btn = await frame.$("div.add-btn")
+    await btn.click({delay: 2000})
   } else {
     console.error('Frame with name "myframe" not found.');
   }
