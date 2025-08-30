@@ -3,14 +3,18 @@ const pie = require("puppeteer-in-electron")
 const puppeteer = require("puppeteer-core");
 const { createCursor, installMouseHelper } = require('ghost-cursor');
 
+/** 发布职位 div */
+const element1 = "div.add-btn";
+/** 职位名称 input */
+const element2 = ".job-name-input";
+
+const delay = (time) => {
+  return new Promise(function(resolve) { 
+      setTimeout(resolve, time)
+  });
+}
+
 const main = async () => {
-  
-  function delay(time) {
-   return new Promise(function(resolve) { 
-       setTimeout(resolve, time)
-   });
-  }
-  
   await pie.initialize(app);
   const browser = await pie.connect(app, puppeteer);
 
@@ -78,14 +82,16 @@ const test3 = async(page) => {
     }
   }
   if (frame) {
-    const element =await frame.waitForSelector("div.add-btn",{
+    const element =await frame.waitForSelector(element1,{
       visible: true
     })
     const text = await frame.$eval('div.add-btn', ele => ele.textContent);
     // await frame.click(element,{debugHighlight: true,})
     console.log(text);
-    const btn = await frame.$("div.add-btn")
+    const btn = await frame.$(element1)
     await btn.click({delay: 2000})
+    delay(2000).then(() => test5(page))
+
   } else {
     console.error('Frame with name "myframe" not found.');
   }
@@ -126,6 +132,30 @@ const test4 = async(page) => {
       });
     }
   });
+}
+
+const test5 = async(page) => {
+  // const input = await frame.$(element2,{timeout: 100000})
+  
+  const frames = page.frames();
+  let frame = null;
+  for (const currentFrame of frames) {
+    if (currentFrame.url().includes('/web/frame/job/edit')) {
+      frame = currentFrame;
+      break;
+    }
+  }
+  
+  if (frame) {
+    const element =await frame.waitForSelector(element2,{
+      visible: true
+    })
+    await frame.type(element2,"测试Puppeteer对boss平台的自动化能力",{delay: 2000})
+
+  } else {
+    console.error('Frame with name "myframe" not found.');
+  }
+    
 }
 
 main();
