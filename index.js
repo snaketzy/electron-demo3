@@ -2,11 +2,11 @@ const {BrowserWindow, app} = require("electron");
 const pie = require("puppeteer-in-electron")
 const puppeteer = require("puppeteer-core");
 const { createCursor, installMouseHelper } = require('ghost-cursor');
-
-/** 发布职位 div */
-const element1 = "div.add-btn";
-/** 职位名称 input */
-const element2 = ".job-name-input";
+const { 
+  element1,
+  element2,
+  ComponentsObject 
+} = require("./config");
 
 const delay = (time) => {
   return new Promise(function(resolve) { 
@@ -20,9 +20,10 @@ const main = async () => {
 
   const window = new BrowserWindow({
     width: 1366,
-    height: 768
+    height: 768,
   });
-  const url = "https://www.zhipin.com/web/chat/job/list";
+  // const url = "https://www.zhipin.com/web/chat/job/list";
+  const url = ComponentsObject["个人中心"].url;
   await window.loadURL(url);
 
   const page = await pie.getPage(browser, window);
@@ -31,7 +32,8 @@ const main = async () => {
 
   // test2(page)
 
-  test3(page)
+  // test3(page)
+  await page.on("load", routeToMenu(page,ComponentsObject["推荐牛人"]))
 
   // test4(page)
 };
@@ -72,6 +74,7 @@ const test2 = async(page) => {
   await page.click(element)
 }
 
+/** 在职位管理模块点击【发布职位】 */
 const test3 = async(page) => {
   const frames = page.frames();
   let frame = null;
@@ -90,7 +93,7 @@ const test3 = async(page) => {
     console.log(text);
     const btn = await frame.$(element1)
     await btn.click({delay: 2000})
-    delay(2000).then(() => test5(page))
+    delay(2000).then(() => test5(page,"测试Puppeteer对boss平台的自动化能力"))
 
   } else {
     console.error('Frame with name "myframe" not found.');
@@ -134,7 +137,8 @@ const test4 = async(page) => {
   });
 }
 
-const test5 = async(page) => {
+/** 执行特定input的填充 */
+const test5 = async(page, text = "") => {
   // const input = await frame.$(element2,{timeout: 100000})
   
   const frames = page.frames();
@@ -150,12 +154,18 @@ const test5 = async(page) => {
     const element =await frame.waitForSelector(element2,{
       visible: true
     })
-    await frame.type(element2,"测试Puppeteer对boss平台的自动化能力",{delay: 2000})
+    await frame.type(element2, text ,{delay: 1000})
 
   } else {
     console.error('Frame with name "myframe" not found.');
   }
-    
+}
+
+/** 跳转指定菜单 */
+const routeToMenu = async(page, routePath) => {
+  const element = await page.$(routePath.path)
+  // debugger
+  await element.click(element,{delay:2000})
 }
 
 main();
