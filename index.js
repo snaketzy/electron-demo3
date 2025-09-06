@@ -14,10 +14,30 @@ const delay = (time) => {
   });
 }
 
-/** 监听控制台消息 */
-page.on('console', message => {
-  console.log(`控制台消息: ${message.text()}`);
-});
+/** 扫码登录是否失效 */
+let scanToLoginIsExpire = false;
+/** 扫码登录循环器 */
+let scarToLoginCheckInterval;
+
+/** 检查扫码登录是否失效 */
+const checkScanToLoginIsExpire = (page) => {
+  scarToLoginCheckInterval = setInterval(async() => {
+    console.log("当前页面URL为：", page.url())
+    const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
+    if(refreshBtn) { 
+      clearInterval(scarToLoginCheckInterval)
+      handleCheckScanToLoginIsExpire(page, refreshBtn)
+    }
+  }, 2000)
+}
+
+/** 扫码签约失效时的处理 */
+const handleCheckScanToLoginIsExpire = async(page, btn) => {
+  delay(1000).then(async() => {
+    await btn.click(btn,{delay:1000})
+    checkScanToLoginIsExpire(page)
+  })
+}
 
 const main = async () => {
   await pie.initialize(app);
@@ -39,9 +59,16 @@ const main = async () => {
 
   // test3(page)
   await page.on("load", scanToLogin(page))
+  /** 监听控制台消息 */
+  await page.on('console', message => {
+    console.log(`控制台消息: ${message.text()}`);
+  });
 
+  checkScanToLoginIsExpire(page);
   // test4(page)
 };
+
+
 
 const test1 = async(page) => {
   await page.waitForSelector("div.page-name");
@@ -177,7 +204,7 @@ const scanToLogin = async(page) => {
 const routeToMenu = async(page, routeElement) => {
   await page.waitForSelector(routeElement.path)
   const element = await page.$(routeElement.path)
-  delay(1000).then(() =>element.click(element,{delay:1000}))
+  delay(1000).then(async() =>await element.click(element,{delay:1000}))
 }
 
 
