@@ -23,7 +23,7 @@ const main = async () => {
     height: 768,
   });
   // const url = "https://www.zhipin.com/web/chat/job/list";
-  const url = ComponentsObject["个人中心"].url;
+  const url = ComponentsObject["登录/注册"].url;
   await window.loadURL(url);
 
   const page = await pie.getPage(browser, window);
@@ -33,7 +33,7 @@ const main = async () => {
   // test2(page)
 
   // test3(page)
-  await page.on("load", routeToMenu(page,ComponentsObject["推荐牛人"]))
+  await page.on("load", scanToLogin(page))
 
   // test4(page)
 };
@@ -161,11 +161,19 @@ const test5 = async(page, text = "") => {
   }
 }
 
-/** 跳转指定菜单 */
-const routeToMenu = async(page, routePath) => {
-  const element = await page.$(routePath.path)
-  // debugger
-  await element.click(element,{delay:2000})
+/** 扫码登陆 */
+const scanToLogin = async(page) => {
+  await page.waitForSelector("div.ewm-switch div.switch-tip")
+  const element = await page.$("div.switch-tip")
+  delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
 }
+
+/** 跳转指定菜单 */
+const routeToMenu = async(page, routeElement) => {
+  await page.waitForSelector(routeElement.path)
+  const element = await page.$(routeElement.path)
+  delay(1000).then(() =>element.click(element,{delay:1000}))
+}
+
 
 main();

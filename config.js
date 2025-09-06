@@ -8,6 +8,20 @@ export const prefixUrl = "https://www.zhipin.com"
 
 /** 各模块组件对象 */
 export const ComponentsObject = {
+  "登录/注册": {
+    type:"",
+    element:"",
+    path:"",
+    url:"https://www.zhipin.com/web/user/?ka=header-login",
+    children:{
+      "APP扫码登陆": {
+        type:"button",
+        element:"div",
+        path: "div.switch-tip",
+        url:"https://www.zhipin.com/web/user/?ka=header-login",
+      }
+    }
+  },
   "职位管理":{
     type: "a",
     element: "a",
