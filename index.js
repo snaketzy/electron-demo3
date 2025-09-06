@@ -14,6 +14,11 @@ const delay = (time) => {
   });
 }
 
+/** 监听控制台消息 */
+page.on('console', message => {
+  console.log(`控制台消息: ${message.text()}`);
+});
+
 const main = async () => {
   await pie.initialize(app);
   const browser = await pie.connect(app, puppeteer);
