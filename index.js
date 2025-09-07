@@ -1,4 +1,8 @@
-const {BrowserWindow, app} = require("electron");
+const {
+  BrowserWindow,
+  app,
+  session
+} = require("electron");
 const pie = require("puppeteer-in-electron")
 const puppeteer = require("puppeteer-core");
 const { createCursor, installMouseHelper } = require('ghost-cursor');
@@ -7,6 +11,9 @@ const {
   element2,
   ComponentsObject 
 } = require("./config");
+
+const { handleRecommendModule } = require("./modules/RecommendModule");
+const { GetBossHttpData } = require("./GetHttpData");
 
 const delay = (time) => {
   return new Promise(function(resolve) { 
@@ -17,16 +24,20 @@ const delay = (time) => {
 /** 扫码登录是否失效 */
 let scanToLoginIsExpire = false;
 /** 扫码登录循环器 */
-let scarToLoginCheckInterval;
+let scanToLoginCheckInterval;
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
-  scarToLoginCheckInterval = setInterval(async() => {
-    console.log("当前页面URL为：", page.url())
-    const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
-    if(refreshBtn) { 
-      clearInterval(scarToLoginCheckInterval)
-      handleCheckScanToLoginIsExpire(page, refreshBtn)
+  scanToLoginCheckInterval = setInterval(async() => {
+    console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url())
+    if(!page.url().includes("web/user/?ka=header-login")) {
+      moduleProcessSchema(page)
+    } else {
+      const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
+      if(refreshBtn) {
+        clearInterval(scanToLoginCheckInterval) // 清除循环器
+        handleCheckScanToLoginIsExpire(page, refreshBtn) // 获取新qrcode
+      }
     }
   }, 2000)
 }
@@ -39,15 +50,59 @@ const handleCheckScanToLoginIsExpire = async(page, btn) => {
   })
 }
 
+/** 各核心模块业务处理逻辑 */
+const moduleProcessSchema = (page) => {
+  const moduleUrl = page.url();
+  // clearInterval(scanToLoginCheckInterval)
+  switch(true) {
+    // 沟通
+    case moduleUrl.includes("web/chat/index"):{
+      handleChatModule(page)
+      break;
+    }
+    // 推荐牛人
+    case moduleUrl.includes("web/chat/recommend"):{
+      clearInterval(scanToLoginCheckInterval)
+      handleRecommendModule(page)
+      break;
+    }
+  }
+}
+
+/** 沟通模块处理逻辑 */
+const handleChatModule = (page) => {
+
+}
+
+/** 推荐牛人模块处理逻辑 */
+// const handleRecommendModule = (page) => {
+//   debugger
+// }
+
 const main = async () => {
   await pie.initialize(app);
   const browser = await pie.connect(app, puppeteer);
+
+  // 应用就绪后，再获取 defaultSession 并设置监听
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*/*'] }, // 考虑使用更明确的 URL 模式
+    (details, callback) => {
+      // 添加或修改请求头
+      details.requestHeaders['user-agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36';
+      details.requestHeaders['sec-ch-ua'] = '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"';
+      // 通过 callback 继续发送请求并传入修改后的请求头
+      callback({ cancel: false, requestHeaders: details.requestHeaders });
+    }
+  );
 
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
   });
   // const url = "https://www.zhipin.com/web/chat/job/list";
+
+  GetBossHttpData(window)
+
   const url = ComponentsObject["登录/注册"].url;
   await window.loadURL(url);
 
@@ -58,9 +113,9 @@ const main = async () => {
   // test2(page)
 
   // test3(page)
-  await page.on("load", scanToLogin(page))
+  // await page.on("load", scanToLogin(page))
   /** 监听控制台消息 */
-  await page.on('console', message => {
+  page.on('console', message => {
     console.log(`控制台消息: ${message.text()}`);
   });
 
@@ -195,9 +250,15 @@ const test5 = async(page, text = "") => {
 
 /** 扫码登陆 */
 const scanToLogin = async(page) => {
-  await page.waitForSelector("div.ewm-switch div.switch-tip")
-  const element = await page.$("div.switch-tip")
-  delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+  try {
+    if(page.url().includes(ComponentsObject["登录/注册"].url)) {
+      await page.waitForSelector("div.ewm-switch div.switch-tip")
+      const element = await page.$("div.switch-tip")
+      delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+    }
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 /** 跳转指定菜单 */

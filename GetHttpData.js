@@ -97,7 +97,7 @@ export const GetBossHttpData = (webWindow,mainWindow) => {
             }
             // console.log("message.params",params)
             // console.log("message.response", response)
-            mainWindow.send("responseReceived",{params, response})
+            // mainWindow.send("responseReceived",{params, response})
             frameId = null
           }
         });
