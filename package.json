@@ -3,6 +3,7 @@
   "description": "测试Electron技术的掌握程度，整合puppeteer-in-electron的方案",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "repository": "https://github.com/snaketzy/electron-demo3.git",
   "author": "Jerry Tang <snaketzy@gmail.com>",
   "license": "MIT",

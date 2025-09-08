@@ -1,19 +1,28 @@
-const {
-  BrowserWindow,
-  app,
-  session
-} = require("electron");
-const pie = require("puppeteer-in-electron")
-const puppeteer = require("puppeteer-core");
-const { createCursor, installMouseHelper } = require('ghost-cursor');
-const { 
-  element1,
-  element2,
-  ComponentsObject 
-} = require("./config");
+// const {
+//   BrowserWindow,
+//   app,
+//   session
+// } = require("electron");
+// const pie = require("puppeteer-in-electron")
+// const puppeteer = require("puppeteer-core");
+// const { createCursor, installMouseHelper } = require('ghost-cursor');
+// const { 
+//   element1,
+//   element2,
+//   ComponentsObject 
+// } = require("./config");
 
-const { handleRecommendModule } = require("./modules/RecommendModule");
-const { GetBossHttpData } = require("./GetHttpData");
+// const { handleRecommendModule } = require("./modules/RecommendModule");
+// const { GetBossHttpData } = require("./GetHttpData");
+
+import { BrowserWindow, app, session } from "electron";
+import pie from "puppeteer-in-electron";
+import puppeteer from "puppeteer-core";
+// import { createCursor, installMouseHelper } from "ghost-cursor";
+import { element1, element2, ComponentsObject, createMenu } from "./config.js";
+import { handleRecommendModule } from "./modules/RecommendModule.js";
+import { GetBossHttpData } from "./GetHttpData.js";
+
 
 const delay = (time) => {
   return new Promise(function(resolve) { 
@@ -25,6 +34,10 @@ const delay = (time) => {
 let scanToLoginIsExpire = false;
 /** 扫码登录循环器 */
 let scanToLoginCheckInterval;
+/** 推荐牛人列表数据 */
+let geekList = undefined;
+/** 沟通数据 */
+let historyMsg = undefined
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
@@ -57,13 +70,13 @@ const moduleProcessSchema = (page) => {
   switch(true) {
     // 沟通
     case moduleUrl.includes("web/chat/index"):{
-      handleChatModule(page)
+      handleChatModule(page, historyMsg)
       break;
     }
     // 推荐牛人
     case moduleUrl.includes("web/chat/recommend"):{
       clearInterval(scanToLoginCheckInterval)
-      handleRecommendModule(page)
+      handleRecommendModule(page, geekList)
       break;
     }
   }
@@ -114,12 +127,45 @@ const main = async () => {
 
   // test3(page)
   // await page.on("load", scanToLogin(page))
+  
   /** 监听控制台消息 */
   page.on('console', message => {
     console.log(`控制台消息: ${message.text()}`);
   });
 
+  // 监听响应事件
+  page.on('response', async response => {
+    const url = response.url();
+    // 推荐牛人列表数据
+    if(url.includes("zpjob/rec/geek/list")) {
+      clearInterval(scanToLoginCheckInterval)
+      // console.log(`响应: ${response.status()} ${response.url()}`);
+      // 如需获取响应体，注意这可能消耗较多内存且降低性能
+      const body = await response.text();
+      // console.log(`牛人列表数据: ${body}`);
+      geekList = Array.isArray(JSON.parse(body).zpData.geekList) ? JSON.parse(body).zpData.geekList : undefined;
+      
+      if(geekList) {
+        const afterHandleRecommendModule = new Promise((resolve) => {
+          return handleRecommendModule(page, geekList, resolve)  
+        })
+      
+        afterHandleRecommendModule.then((val) => {
+          debugger
+        })
+      }
+    }
+    // 对话历史记录
+     if(url.includes("historyMsg")) {
+      const body = await response.text();
+      // console.log(`对话历史记录: ${body}`);
+      historyMsg = JSON.parse(body).zpData.messages;
+    }
+  });
+
+
   checkScanToLoginIsExpire(page);
+  createMenu()
   // test4(page)
 };
 

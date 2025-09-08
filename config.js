@@ -1,4 +1,6 @@
 
+import { Menu } from "electron"
+
 /** 发布职位 div */
 export const element1 = "div.add-btn";
 /** 职位名称 input */
@@ -93,4 +95,49 @@ export const ComponentsObject = {
     url: "https://www.zhipin.com/web/chat/user-center",
     children: null
   }
+}
+
+
+/** 创建菜单 */
+export const createMenu = () => {
+  let template = [
+    {
+      label:"工具",
+      submenu: [
+        {
+          label:"刷新(F5)",
+          accelerator:"F5",
+          click:(item, focusedWindow) => {
+            if(focusedWindow) {
+              focusedWindow.reload()
+            }
+          } 
+        },
+        {
+          label:"切换开发者工具(F12)",
+          accelerator:"F12",
+          click:(item, focusedWindow) => {
+            if(focusedWindow) {
+              focusedWindow.webContents.toggleDevTools()
+            }
+          }
+        }
+      ]
+    },
+    {
+      label:"帮助",
+      submenu: [
+        {
+          label:"关于(F1)",
+          accelerator:"F1",
+          click:() => {
+            shell.openExternal("https://premoss.viphrm.com/")
+          }
+        }
+      ]
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
 }

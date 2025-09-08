@@ -78,23 +78,24 @@ export const GetBossHttpData = (webWindow,mainWindow) => {
         /** 消息到达通知，因为需要多端同步消息，因此其他端的招聘方发送消息也会触发此通知 */
         if(params.request.postData && params.request.postData.includes("message-arrived-expose")) {
           frameId = params.frameId
-          console.log('对话消息检测：', params);
+          // console.log('对话消息检测：', params);
         }
       }
       if (method === 'Network.responseReceived') {
       webWindow.webContents.debugger.sendCommand('Network.getResponseBody', { requestId: params.requestId })
         .then(response => {
-          if(params.response.mimeType === "application/json") {
+          if(!params.response.url.includes("json")
+          ) {
             // if(params.response.url.includes("wapi/zpCommon/actionLog/common.json")) {
             //   console.log("新消息通知",params)
             // }
             if(params.frameId === frameId) {
-              console.log("新消息通知：",params)
-              console.log("新消息通知.message.response：", response)
+              // console.log("新消息通知：",params)
+              // console.log("新消息通知.message.response：", response)
             }
             if(params.response.url.includes("historyMsg")) {
-              console.log("收到对话历史数据：", JSON.parse(response.body))
-            }
+              // console.log("收到对话历史数据：", JSON.parse(response.body))
+            }           
             // console.log("message.params",params)
             // console.log("message.response", response)
             // mainWindow.send("responseReceived",{params, response})

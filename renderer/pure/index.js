@@ -1,4 +1,5 @@
-const { ipcRenderer } = require("electron")
+// const { ipcRenderer } = require("electron")
+import { ipcRenderer} from "electron";
 
 /** 监听主进程推送 */
 ipcRenderer.on('updateUserInfo', (event, value) => {
