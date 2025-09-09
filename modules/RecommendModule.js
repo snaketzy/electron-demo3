@@ -10,7 +10,7 @@ import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 
 /** 推荐牛人模块处理逻辑 */
-export const handleRecommendModule = (page, geekList, resolve) => {
+export const handleRecommendModule = (page, geekList, userInfo, resolve) => {
   console.log(geekList[0])
   const elementArray = [{...geekList[0]}]
   elementArray.forEach(async(geek, index) => {

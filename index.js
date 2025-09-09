@@ -38,10 +38,15 @@ const delay = (time) => {
 let scanToLoginIsExpire = false;
 /** 扫码登录循环器 */
 let scanToLoginCheckInterval;
+/** 桌面端弹框检测 */
+let checkDesktopDialogInterval;
 /** 推荐牛人列表数据 */
 let geekList = undefined;
 /** 沟通数据 */
 let historyMsg = undefined;
+/** 当前登录用户信息 */
+let userInfo = undefined;
+
 /** 更新沟通数据 */
 const updateHistoryMsg = () => {
   debugger
@@ -53,7 +58,6 @@ let __dirname = path.dirname(__filename);
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
   scanToLoginCheckInterval = setInterval(async() => {
-    checkDesktopDialog(page)
     console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url())
     if(!page.url().includes("web/user/?ka=header-login")) {
       moduleProcessSchema(page)
@@ -68,13 +72,16 @@ const checkScanToLoginIsExpire = (page) => {
 }
 
 /** 检查是否有桌面端弹框,如有则关闭 */
-const checkDesktopDialog = async(page) => {
-  await page.waitForSelector("a[href*='desktop']")
-  const desktopDialog = await page.$("a[href*='desktop']")
-  const close = await page.$("div.boss-popup__close")
-  if(desktopDialog && close) {
-    close.click({debugHighlight:true})
-  } 
+const checkDesktopDialog = (page) => {
+  checkDesktopDialogInterval = setInterval(async() => {
+    await page.waitForSelector("a[href*='desktop']")
+    const desktopDialog = await page.$("a[href*='desktop']")
+    const close = await page.$("div.boss-popup__close")
+    console.log("checkDesktopDialog -> 检测是否有桌面端dialog：", close ? "是" : "否")
+    if(desktopDialog && close) {
+      close.click({debugHighlight:true})
+    } 
+  }, 2000)
 }
 
 /** 扫码签约失效时的处理 */
@@ -94,7 +101,7 @@ const moduleProcessSchema = (page) => {
     case moduleUrl.includes("web/chat/index"):{
       clearInterval(scanToLoginCheckInterval)
       const afterHandleChatModule = new Promise((resolve) => {
-        return handleChatModule(page,updateHistoryMsg, resolve)  
+        return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
         debugger
@@ -102,24 +109,13 @@ const moduleProcessSchema = (page) => {
       break;
     }
     // 推荐牛人模块,因此模块接口请求有特殊判断，因此不走此处理分支
-    case moduleUrl.includes("web/chat/recommend"):{
-      return
-      clearInterval(scanToLoginCheckInterval)
-      handleRecommendModule(page, geekList)
-      break;
-    }
+    // case moduleUrl.includes("web/chat/recommend"):{
+    //   clearInterval(scanToLoginCheckInterval)
+    //   handleRecommendModule(page, geekList)
+    //   break;
+    // }
   }
 }
-
-/** 沟通模块处理逻辑 */
-// const handleChatModule = (page) => {
-
-// }
-
-/** 推荐牛人模块处理逻辑 */
-// const handleRecommendModule = (page) => {
-//   debugger
-// }
 
 const main = async () => {
   await pie.initialize(app);
@@ -187,6 +183,11 @@ const main = async () => {
   /** 监听响应事件 */
   page.on('response', async response => {
     const url = response.url();
+    if(url.includes("getUserInfo")) {
+      const body = await response.text();
+      const bodyJson = JSON.parse(body);
+      userInfo = bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;
+    }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
       clearInterval(scanToLoginCheckInterval)
@@ -198,7 +199,7 @@ const main = async () => {
       
       if(geekList) {
         const afterHandleRecommendModule = new Promise((resolve) => {
-          return handleRecommendModule(page, geekList, resolve)  
+          return handleRecommendModule(page, geekList, userInfo, resolve)
         })
       
         afterHandleRecommendModule.then((val) => {
@@ -216,6 +217,7 @@ const main = async () => {
 
 
   checkScanToLoginIsExpire(page);
+  checkDesktopDialog(page);
   createMenu()
   // test4(page)
 };
