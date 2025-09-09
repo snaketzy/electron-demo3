@@ -21,6 +21,7 @@ import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
 import { element1, element2, ComponentsObject, createMenu } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
+import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
 
 
@@ -37,11 +38,17 @@ let scanToLoginCheckInterval;
 /** 推荐牛人列表数据 */
 let geekList = undefined;
 /** 沟通数据 */
-let historyMsg = undefined
+let historyMsg = undefined;
+/** 更新沟通数据 */
+const updateHistoryMsg = () => {
+  debugger
+  return historyMsg;
+}
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
   scanToLoginCheckInterval = setInterval(async() => {
+    checkDesktopDialog(page)
     console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url())
     if(!page.url().includes("web/user/?ka=header-login")) {
       moduleProcessSchema(page)
@@ -53,6 +60,16 @@ const checkScanToLoginIsExpire = (page) => {
       }
     }
   }, 2000)
+}
+
+/** 检查是否有桌面端弹框,如有则关闭 */
+const checkDesktopDialog = async(page) => {
+  await page.waitForSelector("a[href*='desktop']")
+  const desktopDialog = await page.$("a[href*='desktop']")
+  const close = await page.$("div.boss-popup__close")
+  if(desktopDialog && close) {
+    close.click({debugHighlight:true})
+  } 
 }
 
 /** 扫码签约失效时的处理 */
@@ -68,13 +85,20 @@ const moduleProcessSchema = (page) => {
   const moduleUrl = page.url();
   // clearInterval(scanToLoginCheckInterval)
   switch(true) {
-    // 沟通
+    // 沟通模块
     case moduleUrl.includes("web/chat/index"):{
-      handleChatModule(page, historyMsg)
+      clearInterval(scanToLoginCheckInterval)
+      const afterHandleChatModule = new Promise((resolve) => {
+        return handleChatModule(page,updateHistoryMsg, resolve)  
+      })
+      afterHandleChatModule.then((val) => {
+        debugger
+      })
       break;
     }
-    // 推荐牛人
+    // 推荐牛人模块,因此模块接口请求有特殊判断，因此不走此处理分支
     case moduleUrl.includes("web/chat/recommend"):{
+      return
       clearInterval(scanToLoginCheckInterval)
       handleRecommendModule(page, geekList)
       break;
@@ -83,9 +107,9 @@ const moduleProcessSchema = (page) => {
 }
 
 /** 沟通模块处理逻辑 */
-const handleChatModule = (page) => {
+// const handleChatModule = (page) => {
 
-}
+// }
 
 /** 推荐牛人模块处理逻辑 */
 // const handleRecommendModule = (page) => {
@@ -126,14 +150,28 @@ const main = async () => {
   // test2(page)
 
   // test3(page)
-  // await page.on("load", scanToLogin(page))
+  page.on("load", (event) => {
+    // debugger
+    // scanToLogin(page)
+  })
   
   /** 监听控制台消息 */
   page.on('console', message => {
-    console.log(`控制台消息: ${message.text()}`);
+    try {
+      console.log(`控制台消息: ${message.text()}`);
+    } catch(error) {
+
+    }
   });
 
-  // 监听响应事件
+  /** 监听请求事件 */
+  page.on("request", async response => {
+    if(response.postData &&　response.postData() && response.postData().includes("message-arrived-expose")) {
+      console.log('对话消息检测：', params);
+    }
+  })
+
+  /** 监听响应事件 */
   page.on('response', async response => {
     const url = response.url();
     // 推荐牛人列表数据
@@ -204,7 +242,7 @@ const test2 = async(page) => {
   debugger
   const element = await page.$("div.add-btn")
   debugger
-  await page.click(element)
+  await page.click(element,{debugHighlight:true})
 }
 
 /** 在职位管理模块点击【发布职位】 */

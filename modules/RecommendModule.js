@@ -13,15 +13,18 @@ import puppeteer from "puppeteer-core";
 export const handleRecommendModule = (page, geekList, resolve) => {
   console.log(geekList[0])
   const elementArray = [{...geekList[0]}]
-  elementArray.forEach((geek) => {
+  elementArray.forEach(async(geek, index) => {
     // console.log(geek,page)
-    locationGeekItem(geek,page)
+    await locationGeekItem(geek,page)
     console.log(`向${geek.geekCard.geekName}打招呼`)
-    
+    if(index === elementArray.length - 1) {
+      resolve()
+    }
   });
+  
 }
 
-// 定位每个牛人
+/** 定位每个符合条件的牛人,并打招呼 */
 const locationGeekItem = async(geek, page) => {
   const frames = page.frames();
   let frame = null;
@@ -32,12 +35,11 @@ const locationGeekItem = async(geek, page) => {
     }
   }
   if(frame) {
-    // 打招呼按钮
+    // 1、定位打招呼按钮
     const greetingBtnTxt = await getGreetingBtn(frame,geek)
-    
-    debugger
+    console.log("1、定位打招呼按钮", greetingBtnTxt)
 
-    // 确认dialog
+    // 2、定位确认dialog
     // const confirmBtn = await getConfirmBtn(frame,geek)
   }
 }
