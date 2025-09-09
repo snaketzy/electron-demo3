@@ -23,6 +23,9 @@ import { element1, element2, ComponentsObject, createMenu } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
+import os from "os";
+import url from "url";
+import path from "path";
 
 
 const delay = (time) => {
@@ -44,6 +47,8 @@ const updateHistoryMsg = () => {
   debugger
   return historyMsg;
 }
+let __filename = url.fileURLToPath(import.meta.url);
+let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
@@ -135,6 +140,14 @@ const main = async () => {
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
+    webPreferences:{
+      webSecurity:false,
+      nodeIntegration: true,
+      contextIsolation: true,
+      nodeIntegrationInSubFrames: true,
+      allowRunningInsecureContent: true,
+      preload: path.join(__dirname, "renderer/preload.mjs")
+    }
   });
   // const url = "https://www.zhipin.com/web/chat/job/list";
 

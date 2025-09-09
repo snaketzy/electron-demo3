@@ -2,7 +2,7 @@
 //   ipcRenderer
 // } from "electron";
 console.log("载入preload.mjs")
-  
+
  // 更新响应显示
 function updateResponse(data, type) {
   debugger

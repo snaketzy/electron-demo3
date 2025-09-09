@@ -18,7 +18,7 @@ export const handleRecommendModule = (page, geekList, resolve) => {
     await locationGeekItem(geek,page)
     console.log(`向${geek.geekCard.geekName}打招呼`)
     if(index === elementArray.length - 1) {
-      resolve()
+      resolve("完成")
     }
   });
   
