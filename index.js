@@ -93,7 +93,7 @@ const handleCheckScanToLoginIsExpire = async(page, btn) => {
 }
 
 /** 各核心模块业务处理逻辑 */
-const moduleProcessSchema = (page) => {
+const moduleProcessSchema = async(page) => {
   const moduleUrl = page.url();
   // clearInterval(scanToLoginCheckInterval)
   switch(true) {
@@ -104,7 +104,8 @@ const moduleProcessSchema = (page) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
-        debugger
+        page.reload(); 
+        routeToMenu(page,ComponentsObject["推荐牛人"])
       })
       break;
     }
@@ -115,6 +116,25 @@ const moduleProcessSchema = (page) => {
     //   break;
     // }
   }
+}
+
+/** 判断职位管理模块已载入 */
+const validateJobListVisible = async(page) => {
+  const frames = page.frames();
+  let frame = null;
+  for (const currentFrame of frames) {
+    if (currentFrame.url().includes('/web/frame/job/list-new')) {
+      frame = currentFrame;
+      break;
+    }
+  }
+  if (frame) {
+    await frame.waitForSelector("div.add-btn",{
+      visible: true
+    })
+    const element = await page.$("div.add-btn")
+    return element
+  } 
 }
 
 const main = async () => {

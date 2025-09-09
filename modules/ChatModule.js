@@ -4,7 +4,7 @@ import puppeteer from "puppeteer-core";
 import { delay } from "../utils/Tools.js";
 
 /** 沟通模块处理逻辑 */
-export const handleChatModule = async(page, updateHistoryMsg, resolve) => {
+export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   console.log("沟通模块处理逻辑")
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
       visible: true
@@ -15,11 +15,13 @@ export const handleChatModule = async(page, updateHistoryMsg, resolve) => {
   const response = await fetchToken();
   console.log("请求token接口：", response)
   await locationUnreadItem(page,updateHistoryMsg)
+  resolve("本轮沟通模块业务处理完毕")
 }
 
 /** 定位每个未读对话，并获得对应的对话记录 */
 const locationUnreadItem = async(page,updateHistoryMsg) => {
   const unreadItems = await page.$$("div.user-list div[role='group'] > div");
+  return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
     unreadItems.forEach(async(item, index) => {
       // await item.click()
@@ -37,6 +39,9 @@ const locationUnreadItem = async(page,updateHistoryMsg) => {
         const chatContext = await fetchContext(historyMsgResult);
         const replyMessageResult = await replyMessage(page,chatContext);
         console.log(replyMessageResult)
+        if(index === 0) {
+          return "全部对话完成"
+        }
       }
     })
   }
