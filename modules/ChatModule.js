@@ -27,10 +27,40 @@ const locationUnreadItem = async(page,updateHistoryMsg) => {
       const text = await item.evaluate(item => item.textContent);
       if(index === 0 && text.trim().includes("汤")) {
         console.log(text.trim())
-        await item.click()
+        const [response] = await Promise.all([
+          page.waitForResponse(response => 
+            response.url().includes('historyMsg') && response.status() === 200),
+          item.click(), // 触发网络请求的操作
+        ]);
+        // await item.click()
+        const historyMsgResult = await response.json();
+        const chatContext = await fetchContext(historyMsgResult);
+        const replyMessageResult = await replyMessage(page,chatContext);
+        console.log(replyMessageResult)
       }
     })
   }
+}
+
+/** 根据对话上下文，从接口获取话术 */
+const fetchContext = async(historyMsgResult) => {
+  try {
+    const response = await net.fetch('https://test-moss.zhenyetong.com/home-server/auth/userAndCompany');
+    if(response.ok) {
+      const body = await response.json()
+      return "测试对话答复"
+    }
+  } catch(error) {
+    return error || "response failure"
+  }
+}
+
+/** 定位消息输入框，并回复 */
+const replyMessage = async(page, chatContext) => {
+  const textArea = await page.$("div.boss-chat-editor-input");
+  await page.type("div.boss-chat-editor-input", chatContext ,{delay: 1000})
+  await page.keyboard.press('Enter');
+  return "回复成功"
 }
 
 /** 获取token */
@@ -44,5 +74,4 @@ const fetchToken = async() => {
   } catch(error) {
     return error || "response failure"
   }
-  
 }

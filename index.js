@@ -194,11 +194,11 @@ const main = async () => {
       }
     }
     // 对话历史记录
-     if(url.includes("historyMsg")) {
-      const body = await response.text();
-      // console.log(`对话历史记录: ${body}`);
-      historyMsg = JSON.parse(body).zpData.messages;
-    }
+    //  if(url.includes("historyMsg")) {
+    //   const body = await response.text();
+    //   // console.log(`对话历史记录: ${body}`);
+    //   historyMsg = JSON.parse(body).zpData.messages;
+    // }
   });
 
 
