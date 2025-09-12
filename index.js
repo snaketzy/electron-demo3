@@ -373,6 +373,7 @@ const scanToLogin = async(page) => {
     if(page.url().includes(ComponentsObject["登录/注册"].url)) {
       await page.waitForSelector("div.ewm-switch div.switch-tip")
       const element = await page.$("div.switch-tip")
+      debugger
       delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
     }
   } catch (err) {

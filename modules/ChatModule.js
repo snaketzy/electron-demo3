@@ -14,12 +14,12 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
   await unreadButton.click({debugHighlight:true})
   const response = await fetchToken();
   console.log("请求token接口：", response)
-  await locationUnreadItem(page,updateHistoryMsg)
+  await locationUnreadItem(page,updateHistoryMsg, userInfo)
   resolve("本轮沟通模块业务处理完毕")
 }
 
 /** 定位每个未读对话，并获得对应的对话记录 */
-const locationUnreadItem = async(page,updateHistoryMsg) => {
+const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
   const unreadItems = await page.$$("div.user-list div[role='group'] > div");
   return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
@@ -36,7 +36,7 @@ const locationUnreadItem = async(page,updateHistoryMsg) => {
         ]);
         // await item.click()
         const historyMsgResult = await response.json();
-        const chatContext = await fetchContext(historyMsgResult);
+        const chatContext = await fetchContext(historyMsgResult, userInfo);
         const replyMessageResult = await replyMessage(page,chatContext);
         console.log(replyMessageResult)
         if(index === 0) {
@@ -48,9 +48,16 @@ const locationUnreadItem = async(page,updateHistoryMsg) => {
 }
 
 /** 根据对话上下文，从接口获取话术 */
-const fetchContext = async(historyMsgResult) => {
+const fetchContext = async(historyMsgResult, userInfo) => {
   try {
-    const response = await net.fetch('https://test-moss.zhenyetong.com/home-server/auth/userAndCompany');
+    const response = await net.fetch({
+      url:'https://test-moss.zhenyetong.com/home-server/auth/userAndCompany',
+      method:"post",
+      headers: {
+        'Content-Type': "application/json",
+        'Authorization': "test",
+      }
+    });
     if(response.ok) {
       const body = await response.json()
       return "测试对话答复"
