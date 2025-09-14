@@ -60,9 +60,9 @@ const checkScanToLoginIsExpire = (page) => {
 const checkDesktopDialog = (page) => {
   checkDesktopDialogInterval = setInterval(async() => {
     try {
-      await page.waitForSelector("a[href*='desktop']")
-      const desktopDialog = await page.$("a[href*='desktop']")
-      const close = await page.$("div.boss-popup__close")
+      await page.waitForSelector(ComponentsObject["全局"].children["桌面端dialog"].path)
+      const desktopDialog = await page.$(ComponentsObject["全局"].children["桌面端dialog"].path)
+      const close = await page.$(ComponentsObject["全局"].children["桌面端dialog"].children["关闭按钮"].path)
       console.log("checkDesktopDialog -> 检测是否有桌面端dialog：", close ? "是" : "否")
       if(desktopDialog && close) {
         close.click({debugHighlight:true})

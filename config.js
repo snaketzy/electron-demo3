@@ -10,6 +10,29 @@ export const prefixUrl = "https://www.zhipin.com"
 
 /** 各模块组件对象 */
 export const ComponentsObject = {
+  "全局": {
+    type:"",
+    element:"",
+    path:"",
+    url:"",
+    children: {
+      "桌面端dialog": {
+        type:"button",
+        element:"div",
+        path: "a[href*='desktop']",
+        url:"",
+        children: {
+          "关闭按钮": {
+            type:"button",
+            element:"div",
+            path: "div.boss-popup__close",
+            url:"",
+            children: null
+          }
+        }
+      }
+    }
+  },
   "登录/注册": {
     type:"",
     element:"",
@@ -21,6 +44,14 @@ export const ComponentsObject = {
         element:"div",
         path: "div.switch-tip",
         url:"https://www.zhipin.com/web/user/?ka=header-login",
+        children: null
+      },
+      "刷新获取新二维码": {
+        type:"button",
+        element: "div",
+        path:"button[ka='refresh_app_sao_qrcode']",
+        url:"https://www.zhipin.com/web/user/?ka=header-login",
+        children: null
       }
     }
   },
