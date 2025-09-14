@@ -3,7 +3,7 @@ import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay } from "../utils/Tools.js";
 
-/** 沟通模块处理逻辑 */
+/** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   console.log("沟通模块处理逻辑")
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
@@ -51,7 +51,7 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
 const fetchContext = async(historyMsgResult, userInfo) => {
   try {
     const response = await net.fetch({
-      url:'https://test-moss.zhenyetong.com/home-server/auth/userAndCompany',
+      url:'https://premoss.viphrm.com/home-server/auth/userAndCompany',
       method:"post",
       headers: {
         'Content-Type': "application/json",
@@ -78,7 +78,7 @@ const replyMessage = async(page, chatContext) => {
 /** 获取token */
 const fetchToken = async() => {
   try {
-    const response = await net.fetch('https://test-moss.zhenyetong.com/home-server/auth/userAndCompany');
+    const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany');
     if(response.ok) {
       const body = await response.json()
       return "response ok"

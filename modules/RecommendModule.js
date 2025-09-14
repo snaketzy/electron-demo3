@@ -1,10 +1,3 @@
-// const {
-//   BrowserWindow,
-//   app,
-//   session
-// } = require("electron");
-// const pie = require("puppeteer-in-electron")
-// const puppeteer = require("puppeteer-core");
 import { BrowserWindow, app, session } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
@@ -40,7 +33,7 @@ const locationGeekItem = async(geek, page) => {
     console.log("1、定位打招呼按钮", greetingBtnTxt)
 
     // 2、定位确认dialog
-    // const confirmBtn = await getConfirmBtn(frame,geek)
+    const confirmBtn = await getConfirmBtn(frame,geek)
   }
 }
 
@@ -55,12 +48,15 @@ const getGreetingBtn = async(frame,geek) => {
   return text.trim();
 }
 
+/** 定位打招呼确认按钮 */
 const getConfirmBtn = async(frame,geek) => {
   await frame.waitForSelector("div.dialog-chat-greeting .btn", {
     timeout: 5000,
     visible: true
   })
   const dialogChatGreeting = await frame.$("div.dialog-chat-greeting .btn");
+  debugger
+  return
   if(dialogChatGreeting) {
     await dialogChatGreeting.click({delay: 1000})
   }
