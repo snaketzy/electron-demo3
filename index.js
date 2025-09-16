@@ -6,7 +6,7 @@ import { element1, element2, ComponentsObject, createMenu } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
-import os from "os";
+
 import url from "url";
 import path from "path";
 
@@ -35,6 +35,11 @@ const updateHistoryMsg = () => {
   debugger
   return historyMsg;
 }
+
+const updateUserInfo = () => {
+  return userInfo
+}
+
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
 
@@ -93,8 +98,8 @@ const moduleProcessSchema = async(page) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
-        page.reload(); 
-        routeToMenu(page,ComponentsObject["推荐牛人"])
+        // page.reload(); 
+        // routeToMenu(page,ComponentsObject["推荐牛人"])
       })
       break;
     }
@@ -163,11 +168,7 @@ const main = async () => {
 
   const page = await pie.getPage(browser, window);
 
-  // test1(page)
 
-  // test2(page)
-
-  // test3(page)
   page.on("load", (event) => {
     // debugger
     // scanToLogin(page)
@@ -196,7 +197,12 @@ const main = async () => {
       const body = await response.text();
       const bodyJson = JSON.parse(body);
       console.log(bodyJson)
-      userInfo = bodyJson.code !== 7 && bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;
+      if(bodyJson.code === 0 && bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]) {
+        userInfo = bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;  
+      } 
+      if(bodyJson.code === 0 && bodyJson.zpData.userId) {
+        userInfo = bodyJson.zpData
+      }
     }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
@@ -227,6 +233,10 @@ const main = async () => {
   checkScanToLoginIsExpire(page);
   checkDesktopDialog(page);
   createMenu()
+  
+  // test1(page)
+  // test2(page)
+  // test3(page)
   // test4(page)
 };
 

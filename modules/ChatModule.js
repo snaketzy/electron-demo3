@@ -5,6 +5,10 @@ import { delay } from "../utils/Tools.js";
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
+  // resolve("本轮沟通模块业务处理完毕")
+  const response = await fetchToken();
+  console.log("请求token接口：", response)
+  return
   console.log("沟通模块处理逻辑")
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
       visible: true
@@ -12,16 +16,19 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
   const unreadButton = await page.$("div.chat-message-filter-left :last-child");
   await delay(2000)
   await unreadButton.click({debugHighlight:true})
-  const response = await fetchToken();
-  console.log("请求token接口：", response)
-  await locationUnreadItem(page,updateHistoryMsg, userInfo)
-  resolve("本轮沟通模块业务处理完毕")
+  // const response = await fetchToken();
+  // console.log("请求token接口：", response)
+  const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
+  if(locationResult) {
+    resolve("本轮沟通模块业务处理完毕")
+  } 
 }
 
 /** 定位每个未读对话，并获得对应的对话记录 */
 const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
+  await page.waitForSelector("div.user-list div[role='group'] > div");
   const unreadItems = await page.$$("div.user-list div[role='group'] > div");
-  return "全部对话完成"
+  // return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
     unreadItems.forEach(async(item, index) => {
       // await item.click()
@@ -29,14 +36,18 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
       const text = await item.evaluate(item => item.textContent);
       if(index === 0 && text.trim().includes("汤")) {
         console.log(text.trim())
-        const [response] = await Promise.all([
-          page.waitForResponse(response => 
-            response.url().includes('historyMsg') && response.status() === 200),
-          item.click(), // 触发网络请求的操作
-        ]);
+        await item.click()
+        // const [response] = await Promise.all([
+        //   page.waitForResponse(response => 
+        //     response.url().includes('historyMsg') && response.status() === 200),
+        //   item.click(), // 触发网络请求的操作
+        // ]);
+        const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
+        const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
         // await item.click()
-        const historyMsgResult = await response.json();
-        const chatContext = await fetchContext(historyMsgResult, userInfo);
+        const historyMsgResult = await historyMsgResponse.json();
+        const geekInfoResult = await geekInfoResponse.json();
+        const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
         const replyMessageResult = await replyMessage(page,chatContext);
         console.log(replyMessageResult)
         if(index === 0) {
@@ -48,15 +59,24 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
 }
 
 /** 根据对话上下文，从接口获取话术 */
-const fetchContext = async(historyMsgResult, userInfo) => {
+const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
   try {
-    const response = await net.fetch({
-      url:'https://premoss.viphrm.com/home-server/auth/userAndCompany',
+    let caseValue = 1;
+    const geekInfo = geekInfoResult.zpData.data;
+    // const response = await net.fetch({
+    const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany', {
+      // url:'http://192.168.2.6:8080/api/robot/getscript',
       method:"post",
       headers: {
         'Content-Type': "application/json",
-        'Authorization': "test",
-      }
+        // 'Authorization': "test",
+      },
+      body: caseValue === 1 ? JSON.stringify({
+        bossJobName: geekInfo.position ,
+        robotCode: `${userInfo.userId}`,
+        scriptType: "4",
+        scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
+      }) : {}
     });
     if(response.ok) {
       const body = await response.json()
@@ -78,10 +98,27 @@ const replyMessage = async(page, chatContext) => {
 /** 获取token */
 const fetchToken = async() => {
   try {
-    const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany');
+    debugger
+    // const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany');
+    // if(response.ok) {
+    //   const body = await response.json()
+    //   return "response ok"
+    // }
+     const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany',{
+      method:"post",
+      headers: {
+        'Content-Type': "application/json"
+      },
+      body: JSON.stringify({
+        bossJobName: "",
+        robotCode: "1",
+        scriptType: "4",
+        scriptContent: "test"
+      })
+    });
     if(response.ok) {
       const body = await response.json()
-      return "response ok"
+      return "测试对话答复"
     }
   } catch(error) {
     return error || "response failure"
