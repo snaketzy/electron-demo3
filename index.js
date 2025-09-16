@@ -2,7 +2,7 @@ import { BrowserWindow, app, session } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
-import { element1, element2, ComponentsObject, createMenu } from "./config.js";
+import { element1, element2, ComponentsObject, createMenu, consoleColor } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
@@ -19,7 +19,7 @@ const delay = (time) => {
 
 /** 扫码登录是否失效 */
 let scanToLoginIsExpire = false;
-/** 扫码登录循环器 */
+/** 扫码登录定时检测器 */
 let scanToLoginCheckInterval;
 /** 桌面端弹框检测 */
 let checkDesktopDialogInterval;
@@ -36,29 +36,35 @@ const updateHistoryMsg = () => {
   return historyMsg;
 }
 
-const updateUserInfo = () => {
-  return userInfo
-}
 
 let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire = (page) => {
-  scanToLogin()
-  scanToLoginCheckInterval = setInterval(async() => {
-    console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url())
-    if(!page.url().includes("web/user/?ka=header-login")) {
-      moduleProcessSchema(page)
-    } else {
-      await page.waitForSelector("button[ka='refresh_app_sao_qrcode']")
-      const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
-      if(refreshBtn) {
-        clearInterval(scanToLoginCheckInterval) // 清除循环器
-        handleCheckScanToLoginIsExpire(page, refreshBtn) // 获取新qrcode
-      }
-    }
+  scanToLoginCheckInterval = setTimeout(() => {
+    doCheckScanToLoginIsExpire(page)
   }, 2000)
+}
+
+const doCheckScanToLoginIsExpire = async(page) => {
+  scanToLogin(page)
+  console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
+  if(!page.url().includes("web/user/?ka=header-login")) {
+    moduleProcessSchema(page)
+    clearTimeout(scanToLoginCheckInterval)
+    scanToLoginCheckInterval = null;
+  } else {
+    await page.waitForSelector("button[ka='refresh_app_sao_qrcode']")
+    const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
+    if(refreshBtn) {
+      clearTimeout(scanToLoginCheckInterval) // 清除循环器
+      scanToLoginCheckInterval = null;
+      handleCheckScanToLoginIsExpire(page, refreshBtn) // 获取新qrcode
+    } else {
+      checkScanToLoginIsExpire(page)
+    }
+  }
 }
 
 /** 检查是否有桌面端弹框,如有则关闭 */
@@ -73,12 +79,12 @@ const checkDesktopDialog = (page) => {
         close.click({debugHighlight:true})
       }
     } catch(error) {
-      console.log("no desk")
+      console.log("checkDesktopDialog: no desk")
     }
   }, 2000)
 }
 
-/** 扫码签约失效时的处理 */
+/** 登录状态失效时的处理 */
 const handleCheckScanToLoginIsExpire = async(page, btn) => {
   delay(1000).then(async() => {
     await btn.click({debugHighlight:true})
@@ -89,12 +95,11 @@ const handleCheckScanToLoginIsExpire = async(page, btn) => {
 /** 各核心模块业务处理逻辑 */
 const moduleProcessSchema = async(page) => {
   const moduleUrl = page.url();
-  // clearInterval(scanToLoginCheckInterval)
+  // clearTimeout(scanToLoginCheckInterval)
   switch(true) {
     // 沟通模块
     case moduleUrl.includes("web/chat/index"):{
-      clearInterval(scanToLoginCheckInterval)
-      const afterHandleChatModule = new Promise((resolve) => {
+     const afterHandleChatModule = new Promise((resolve) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
@@ -105,7 +110,7 @@ const moduleProcessSchema = async(page) => {
     }
     // 推荐牛人模块,因此模块接口请求有特殊判断，因此不走此处理分支
     // case moduleUrl.includes("web/chat/recommend"):{
-    //   clearInterval(scanToLoginCheckInterval)
+    //   clearTimeout(scanToLoginCheckInterval)
     //   handleRecommendModule(page, geekList)
     //   break;
     // }
@@ -131,6 +136,7 @@ const validateJobListVisible = async(page) => {
   } 
 }
 
+/** 主函数 */
 const main = async () => {
   await pie.initialize(app);
   const browser = await pie.connect(app, puppeteer);
@@ -177,7 +183,7 @@ const main = async () => {
   /** 监听控制台消息 */
   page.on('console', message => {
     try {
-      console.log(`控制台消息: ${message.text()}`);
+      console.log(consoleColor["蓝色"], `控制台消息: ${message.text()}`);
     } catch(error) {
 
     }
@@ -186,7 +192,7 @@ const main = async () => {
   /** 监听请求事件 */
   page.on("request", async response => {
     if(response.postData &&　response.postData() && response.postData().includes("message-arrived-expose")) {
-      console.log('对话消息检测：', params);
+      console.log(consoleColor["蓝色"], '对话消息检测：', params);
     }
   })
 
@@ -196,12 +202,22 @@ const main = async () => {
     if(url.includes("getUserInfo")) {
       const body = await response.text();
       const bodyJson = JSON.parse(body);
-      console.log(bodyJson)
+      console.log(consoleColor["蓝色"], "getUserInfo:",bodyJson)
       if(bodyJson.code === 0 && bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]) {
         userInfo = bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;  
       } 
       if(bodyJson.code === 0 && bodyJson.zpData.userId) {
         userInfo = bodyJson.zpData
+      }
+      // 登陆失效状态，目前不走此逻辑分支
+      if(bodyJson.code === 7) {
+        return
+        await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+        const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+        if(qrBtn) {
+          delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+          return
+        }
       }
     }
     // 推荐牛人列表数据
@@ -231,7 +247,7 @@ const main = async () => {
   });
 
   checkScanToLoginIsExpire(page);
-  checkDesktopDialog(page);
+  // checkDesktopDialog(page);
   createMenu()
   
   // test1(page)
@@ -245,14 +261,12 @@ const main = async () => {
 const scanToLogin = async(page) => {
   try {
     if(page.url().includes(ComponentsObject["登录/注册"].url)) {
-      await page.waitForSelector("div.ewm-switch div.switch-tip")
-      const qrBtn = await page.$("div.ewm-switch div.switch-tip")
+      await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+      const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
       if(qrBtn) {
         delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
         return
       }
-
-      
     }
   } catch (err) {
     console.log(err)

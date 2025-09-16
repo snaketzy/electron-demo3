@@ -8,6 +8,12 @@ export const element2 = ".job-name-input";
 /** url前缀 */
 export const prefixUrl = "https://www.zhipin.com"
 
+/** 控制台输出颜色 */
+export const consoleColor = {
+  "红色": '\x1b[31m%s\x1b[0m',
+  "蓝色": '\x1b[34m%s\x1b[0m'
+}
+
 /** 各模块组件对象 */
 export const ComponentsObject = {
   "全局": {
@@ -42,7 +48,7 @@ export const ComponentsObject = {
       "APP扫码登陆": {
         type:"button",
         element:"div",
-        path: "div.switch-tip",
+        path: "div.login-register-content div.ewm-switch div.switch-tip",
         url:"https://www.zhipin.com/web/user/?ka=header-login",
         children: null
       },

@@ -2,12 +2,13 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay } from "../utils/Tools.js";
+import { consoleColor } from "../config.js";
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   // resolve("本轮沟通模块业务处理完毕")
   const response = await fetchToken();
-  console.log("请求token接口：", response)
+  console.log(consoleColor["蓝色"],"请求token接口：", response)
   return
   console.log("沟通模块处理逻辑")
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
@@ -64,8 +65,7 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
     let caseValue = 1;
     const geekInfo = geekInfoResult.zpData.data;
     // const response = await net.fetch({
-    const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany', {
-      // url:'http://192.168.2.6:8080/api/robot/getscript',
+    const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript', {
       method:"post",
       headers: {
         'Content-Type': "application/json",
@@ -104,7 +104,7 @@ const fetchToken = async() => {
     //   const body = await response.json()
     //   return "response ok"
     // }
-     const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany',{
+     const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript',{
       method:"post",
       headers: {
         'Content-Type': "application/json"
