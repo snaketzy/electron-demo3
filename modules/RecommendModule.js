@@ -123,7 +123,9 @@ const candidateInsert = async(geek, userInfo, jobInfo) => {
       candidateName: geek.geekCard.geekName ,
       robotCode: `${userInfo.userId}`,
       bossCandidateID: geek.geekCard.geekId,
-      bossJobName: jobInfo.jobName
+      bossJobName: jobInfo.jobName,
+      targetPosition: geek.geekCard.expectPositionName,
+      expectedWorkCity: geek.geekCard.expectLocationName
     })
   });
   if(response.ok) {
