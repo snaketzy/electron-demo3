@@ -6,7 +6,14 @@ export const element1 = "div.add-btn";
 /** 职位名称 input */
 export const element2 = ".job-name-input";
 /** url前缀 */
-export const prefixUrl = "https://www.zhipin.com"
+export const prefixUrl = "https://www.zhipin.com";
+
+/** 鉴权信息 */
+export let token = "";
+
+export const setToken = (tokenValue) => {
+  token = tokenValue;
+}
 
 /** 控制台输出颜色 */
 export const consoleColor = {

@@ -1,38 +1,34 @@
-import { BrowserWindow, app, session } from "electron";
+import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
-import { element1, element2, ComponentsObject, createMenu, consoleColor } from "./config.js";
+import { element1, element2, ComponentsObject, createMenu, consoleColor, setToken } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
 
 import url from "url";
 import path from "path";
+import { delay } from "./utils/Tools.js";
 
 
-const delay = (time) => {
-  return new Promise(function(resolve) { 
-      setTimeout(resolve, time)
-  });
-}
-
-/** 扫码登录是否失效 */
-let scanToLoginIsExpire = false;
 /** 扫码登录定时检测器 */
 let scanToLoginCheckInterval;
 /** 桌面端弹框检测 */
 let checkDesktopDialogInterval;
 /** 推荐牛人列表数据 */
 let geekList = undefined;
+/** 当前激活的岗位列表 */
+let onlineJobList = [];
 /** 沟通数据 */
 let historyMsg = undefined;
 /** 当前登录用户信息 */
 let userInfo = undefined;
+/** 列表正在处理时，如果数据接口有反馈的判断标志位 */
+let isGeekListProcessing = false;
 
 /** 更新沟通数据 */
 const updateHistoryMsg = () => {
-  debugger
   return historyMsg;
 }
 
@@ -49,7 +45,7 @@ const checkScanToLoginIsExpire = (page) => {
 
 const doCheckScanToLoginIsExpire = async(page) => {
   scanToLogin(page)
-  console.log("checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
+  console.log(consoleColor["蓝色"], "checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
   if(!page.url().includes("web/user/?ka=header-login")) {
     moduleProcessSchema(page)
     clearTimeout(scanToLoginCheckInterval)
@@ -69,17 +65,21 @@ const doCheckScanToLoginIsExpire = async(page) => {
 
 /** 检查是否有桌面端弹框,如有则关闭 */
 const checkDesktopDialog = (page) => {
-  checkDesktopDialogInterval = setInterval(async() => {
+  checkDesktopDialogInterval = setTimeout(async() => {
     try {
       await page.waitForSelector(ComponentsObject["全局"].children["桌面端dialog"].path)
       const desktopDialog = await page.$(ComponentsObject["全局"].children["桌面端dialog"].path)
       const close = await page.$(ComponentsObject["全局"].children["桌面端dialog"].children["关闭按钮"].path)
-      console.log("checkDesktopDialog -> 检测是否有桌面端dialog：", close ? "是" : "否")
+      console.log(consoleColor["蓝色"], "checkDesktopDialog -> 检测是否有桌面端dialog：", close ? "是" : "否",  new Date().toLocaleTimeString())
       if(desktopDialog && close) {
         close.click({debugHighlight:true})
+        checkDesktopDialog(page)
+      } else {
+        checkDesktopDialog(page)
       }
     } catch(error) {
-      console.log("checkDesktopDialog: no desk")
+      console.log(consoleColor["红色"], "checkDesktopDialog: no desk")
+      checkDesktopDialog(page)
     }
   }, 2000)
 }
@@ -103,8 +103,9 @@ const moduleProcessSchema = async(page) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
-        // page.reload(); 
-        // routeToMenu(page,ComponentsObject["推荐牛人"])
+        page.reload(); 
+        delay(2000)
+        routeToMenu(page,ComponentsObject["推荐牛人"])
       })
       break;
     }
@@ -156,6 +157,7 @@ const main = async () => {
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
+    icon: path.join(__dirname, 'assets/favicon.ico'),
     webPreferences:{
       webSecurity:false,
       nodeIntegration: true,
@@ -185,20 +187,21 @@ const main = async () => {
     try {
       console.log(consoleColor["蓝色"], `控制台消息: ${message.text()}`);
     } catch(error) {
-
+      console.log(consoleColor["红色"], `控制台异常: ${error}`);
     }
   });
 
   /** 监听请求事件 */
   page.on("request", async response => {
     if(response.postData &&　response.postData() && response.postData().includes("message-arrived-expose")) {
-      console.log(consoleColor["蓝色"], '对话消息检测：', params);
+      console.log(consoleColor["蓝色"], '对话消息检测：', response.postData());
     }
   })
 
   /** 监听响应事件 */
   page.on('response', async response => {
     const url = response.url();
+    // 用户信息接口
     if(url.includes("getUserInfo")) {
       const body = await response.text();
       const bodyJson = JSON.parse(body);
@@ -222,21 +225,36 @@ const main = async () => {
     }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
-      clearInterval(scanToLoginCheckInterval)
-      // console.log(`响应: ${response.status()} ${response.url()}`);
-      // 如需获取响应体，注意这可能消耗较多内存且降低性能
-      const body = await response.text();
-      // console.log(`牛人列表数据: ${body}`);
-      geekList = Array.isArray(JSON.parse(body).zpData.geekList) ? JSON.parse(body).zpData.geekList : undefined;
-      
-      if(geekList) {
-        const afterHandleRecommendModule = new Promise((resolve) => {
-          return handleRecommendModule(page, geekList, userInfo, resolve)
-        })
-        afterHandleRecommendModule.then((val) => {
-          debugger
-        })
+      if(isGeekListProcessing) {
+        return
+      } else {
+        isGeekListProcessing = true;
+        console.log(onlineJobList)
+        const jobId = new URLSearchParams(url.split("?")[1]).get("jobId");
+        const jobInfo = onlineJobList.find((job) => job.encryptId === jobId);
+        clearTimeout(scanToLoginCheckInterval)
+        // console.log(`响应: ${response.status()} ${response.url()}`);
+        // 如需获取响应体，注意这可能消耗较多内存且降低性能
+        const body = await response.text();
+        // console.log(`牛人列表数据: ${body}`);
+        geekList = Array.isArray(JSON.parse(body).zpData.geekList) ? JSON.parse(body).zpData.geekList : undefined;
+        
+        if(geekList) {
+          const afterHandleRecommendModule = new Promise((resolve) => {
+            return handleRecommendModule(page, geekList, userInfo, jobInfo, resolve)
+          })
+          // 推荐牛人列表
+          afterHandleRecommendModule.then((val) => {
+            isGeekListProcessing = false;
+            debugger
+          })
+        }
       }
+    }
+    // 推荐职位列表
+    if(url.includes("wapi/zpjob/job/recJobList")) {
+      const body = await response.text();
+      onlineJobList = JSON.parse(body).zpData.onlineJobList;
     }
     // 对话历史记录
     //  if(url.includes("historyMsg")) {
@@ -246,9 +264,10 @@ const main = async () => {
     // }
   });
 
+  getToken();
   checkScanToLoginIsExpire(page);
-  // checkDesktopDialog(page);
-  createMenu()
+  checkDesktopDialog(page);
+  createMenu();
   
   // test1(page)
   // test2(page)
@@ -256,6 +275,24 @@ const main = async () => {
   // test4(page)
 };
 
+/** 获取token */
+const getToken = async() => {
+  const response = await net.fetch('http://192.168.2.6:8080/api/Auth/login', {
+    method:"post",
+    headers: {
+      'Content-Type': "application/json"
+    },
+    body: JSON.stringify({
+      username: "18916827968",
+      password: "111111"
+    }) 
+  });
+  if(response.ok) {
+    const body = await response.json()
+    console.log(consoleColor["蓝色"],"请求token接口：", body.data.token)
+    setToken(`Bearer ${body.data.token}`)
+  }
+}
 
 /** 扫码登陆 */
 const scanToLogin = async(page) => {
@@ -269,7 +306,7 @@ const scanToLogin = async(page) => {
       }
     }
   } catch (err) {
-    console.log(err)
+    console.log(consoleColor["红色"],"控制台异常：", err)
   }
 }
 

@@ -2,15 +2,13 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay } from "../utils/Tools.js";
-import { consoleColor } from "../config.js";
+import { consoleColor, token } from "../config.js";
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
-  // resolve("本轮沟通模块业务处理完毕")
-  const response = await fetchToken();
-  console.log(consoleColor["蓝色"],"请求token接口：", response)
-  return
   console.log("沟通模块处理逻辑")
+  resolve("本轮沟通模块业务处理完毕")
+  return
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
       visible: true
     })
@@ -54,6 +52,8 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
         if(index === 0) {
           return "全部对话完成"
         }
+      } else {
+        return "全部对话完成"
       }
     })
   }
@@ -62,21 +62,20 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
 /** 根据对话上下文，从接口获取话术 */
 const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
   try {
-    let caseValue = 1;
     const geekInfo = geekInfoResult.zpData.data;
     // const response = await net.fetch({
     const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript', {
       method:"post",
       headers: {
         'Content-Type': "application/json",
-        // 'Authorization': "test",
+        'Authorization': token,
       },
-      body: caseValue === 1 ? JSON.stringify({
+      body: JSON.stringify({
         bossJobName: geekInfo.position ,
         robotCode: `${userInfo.userId}`,
         scriptType: "4",
         scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
-      }) : {}
+      })
     });
     if(response.ok) {
       const body = await response.json()
@@ -93,34 +92,4 @@ const replyMessage = async(page, chatContext) => {
   await page.type("div.boss-chat-editor-input", chatContext ,{delay: 1000})
   await page.keyboard.press('Enter');
   return "回复成功"
-}
-
-/** 获取token */
-const fetchToken = async() => {
-  try {
-    debugger
-    // const response = await net.fetch('https://premoss.viphrm.com/home-server/auth/userAndCompany');
-    // if(response.ok) {
-    //   const body = await response.json()
-    //   return "response ok"
-    // }
-     const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript',{
-      method:"post",
-      headers: {
-        'Content-Type': "application/json"
-      },
-      body: JSON.stringify({
-        bossJobName: "",
-        robotCode: "1",
-        scriptType: "4",
-        scriptContent: "test"
-      })
-    });
-    if(response.ok) {
-      const body = await response.json()
-      return "测试对话答复"
-    }
-  } catch(error) {
-    return error || "response failure"
-  }
 }
