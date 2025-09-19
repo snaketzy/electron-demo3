@@ -8,6 +8,16 @@ export const element2 = ".job-name-input";
 /** url前缀 */
 export const prefixUrl = "https://www.zhipin.com";
 
+/** token开始生效时间 */
+export let tokenExpireStart = null;
+
+export const setTokenExpireStart = (timestamp) => {
+  tokenExpireStart = timestamp;
+}
+
+/** input框输入延时 */
+export let typeDelay = 1000;
+
 /** 鉴权信息 */
 export let token = "";
 

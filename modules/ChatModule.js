@@ -1,19 +1,20 @@
 import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
-import { delay } from "../utils/Tools.js";
-import { consoleColor, token } from "../config.js";
+import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
+import { consoleColor, token, typeDelay, } from "../config.js";
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   console.log("沟通模块处理逻辑")
-  resolve("本轮沟通模块业务处理完毕")
-  return
+  // resolve("本轮沟通模块业务处理完毕")
+  // return
+  // 切换到未读消息
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
-      visible: true
-    })
+    visible: true
+  })
   const unreadButton = await page.$("div.chat-message-filter-left :last-child");
-  await delay(2000)
+  await delay(getRandomSecondsPrecise())
   await unreadButton.click({debugHighlight:true})
   // const response = await fetchToken();
   // console.log("请求token接口：", response)
@@ -25,37 +26,48 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
 
 /** 定位每个未读对话，并获得对应的对话记录 */
 const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
-  await page.waitForSelector("div.user-list div[role='group'] > div");
+  await page.waitForSelector("div.user-list div[role='group'] > div",{
+    timeout: 5000,
+    visible: true
+  });
   const unreadItems = await page.$$("div.user-list div[role='group'] > div");
   // return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
-    unreadItems.forEach(async(item, index) => {
-      // await item.click()
-      // const historyMsg = await updateHistoryMsg();
-      const text = await item.evaluate(item => item.textContent);
-      if(index === 0 && text.trim().includes("汤")) {
-        console.log(text.trim())
-        await item.click()
-        // const [response] = await Promise.all([
-        //   page.waitForResponse(response => 
-        //     response.url().includes('historyMsg') && response.status() === 200),
-        //   item.click(), // 触发网络请求的操作
-        // ]);
-        const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
-        const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
+    for(const [index,item] of unreadItems.entries()) {
+      try {
+        
         // await item.click()
-        const historyMsgResult = await historyMsgResponse.json();
-        const geekInfoResult = await geekInfoResponse.json();
-        const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
-        const replyMessageResult = await replyMessage(page,chatContext);
-        console.log(replyMessageResult)
-        if(index === 0) {
-          return "全部对话完成"
-        }
-      } else {
-        return "全部对话完成"
+        // const historyMsg = await updateHistoryMsg();
+        const text = await item.evaluate(item => item.textContent);
+        // if(index === 0 && text.trim().includes("汤哲")) {
+        if(index === 0 && text.trim().includes("汤哲")) {
+          console.log(text.trim())
+          await item.click({debugHighlight:true})
+        
+          // const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
+          // const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
+        
+          // const historyMsgResult = await historyMsgResponse.json();
+          // const geekInfoResult = await geekInfoResponse.json();
+          // const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
+          // const replyMessageResult = await replyMessage(page,chatContext);
+          // 如果可以交换手机和微信，就执行对应操作
+          const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page)
+          // console.log(replyMessageResult)
+          if(index === 0) {
+            // return "全部对话完成"
+          }
+          // if(index === unreadItems.length - 1) {
+          //   return "全部对话完成"
+          // }
+        } 
+        // else {
+        //   return "全部对话完成"
+        // }
+      } catch(error) {
+        console.error(consoleColor["红色"],`处理第 ${index + 1} 个item时出错:`, error);
       }
-    })
+    }
   }
 }
 
@@ -89,7 +101,37 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
 /** 定位消息输入框，并回复 */
 const replyMessage = async(page, chatContext) => {
   const textArea = await page.$("div.boss-chat-editor-input");
-  await page.type("div.boss-chat-editor-input", chatContext ,{delay: 1000})
+  await page.type("div.boss-chat-editor-input", chatContext ,{delay: typeDelay})
   await page.keyboard.press('Enter');
   return "回复成功"
+}
+
+/** 交换手机和微信 */
+const applyCellPhoneAndWechat = async(page) => {
+  let phoneResult = false;
+  let wechatResult = false;
+  await page.waitForSelector('span.operate-btn:not(.disabled)',{
+    timeout: 10000,
+    visible: true
+  });
+  await delay(2000)
+  const elements = await page.$$('span.operate-btn:not(.disabled)');
+
+  for (const element of elements) {
+    const text = await page.evaluate(el => el.textContent, element);
+    if (text.includes("换电话")) {
+      phoneResult = true;
+      await element.click({debugHighlight:true});
+      await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
+      await delay(getRandomSecondsPrecise())
+      const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
+      await phoneBtn.click({debugHighlight:true})
+    }
+    //  if (text.includes("换微信")) {
+    //   wechatResult = true;
+    //   await element.click({debugHighlight:true});
+    //   break;
+    // }
+  }
+  return phoneResult
 }

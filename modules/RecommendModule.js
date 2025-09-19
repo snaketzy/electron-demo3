@@ -2,7 +2,7 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { consoleColor, token } from "../config.js";
-import { delay } from "../utils/Tools.js";
+import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
 
 /** 
  * 推荐牛人模块处理逻辑 
@@ -14,6 +14,8 @@ import { delay } from "../utils/Tools.js";
  */
 export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, resolve) => {
   console.log(geekList[0])
+  resolve("完成");
+  return
   for(const [index,geek] of geekList.entries()) {
     try {
       await locationGeekItem(geek, page);
@@ -25,7 +27,7 @@ export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, re
         resolve("完成");
       }
     }catch(error) {
-      console.error(`处理第 ${index + 1} 个geek时出错:`, error);
+      console.error(consoleColor["红色"],`处理第 ${index + 1} 个geek时出错:`, error);
     }
   }
 }
@@ -89,7 +91,7 @@ const getGreetingBtn = async(frame,geek) => {
   const parentHandle = await geekElement.evaluateHandle(node => node.parentNode);
   const buttonElement = await parentHandle.$('.btn-greet'); // 使用类选择器
   console.log(consoleColor["红色"], new Date().toLocaleTimeString())
-  await buttonElement.click({debugHighlight:true,delay: 3000})
+  await buttonElement.click({debugHighlight:true,delay: getRandomSecondsPrecise()})
   console.log(consoleColor["红色"], new Date().toLocaleTimeString())
   // const text = await buttonElement.evaluate(node => node.textContent);
   return true;

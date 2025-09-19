@@ -2,7 +2,7 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
-import { element1, element2, ComponentsObject, createMenu, consoleColor, setToken } from "./config.js";
+import { element1, element2, ComponentsObject, createMenu, consoleColor, setToken, setTokenExpireStart } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
@@ -201,7 +201,7 @@ const main = async () => {
   /** 监听响应事件 */
   page.on('response', async response => {
     const url = response.url();
-    // 用户信息接口
+    
     if(url.includes("getUserInfo")) {
       const body = await response.text();
       const bodyJson = JSON.parse(body);
@@ -291,6 +291,7 @@ const getToken = async() => {
     const body = await response.json()
     console.log(consoleColor["蓝色"],"请求token接口：", body.data.token)
     setToken(`Bearer ${body.data.token}`)
+    setTokenExpireStart(new Date().getTime())
   }
 }
 
