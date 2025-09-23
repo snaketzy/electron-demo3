@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>工作台</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <style>
+      html,
+      body {
+          width: 100% !important;
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          -khtml-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+          margin: 0;
+          padding: 0;
+          font-family: 微软雅黑;
+          background-color: #F0F0F0;
+      }
+      .ant-table-tbody>tr>td,
+      .ant-table-thead>tr>th {
+          padding: 10px 0 !important;
+          text-align: center;
+      }
+      .datepicker-modal{ position: fixed !important;}
+    </style>
+    <script>
+      var deviceWidth = document.documentElement.clientWidth;
+      document.documentElement.style.fontSize = deviceWidth / 7.5 + 'px';
+    </script>
+  </head>
+  <body>
+    <div id="<%= mountId %>"></div>
+  </body>
+</html>

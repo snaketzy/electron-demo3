@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "typeRoots": ["./node_modules/@types", "./src/"], // 自定义声明目录
+  },
+  "include": ["src/​**​/*.d.ts"] // 包含声明文件
+}

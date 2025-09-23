@@ -1,4 +1,4 @@
-import { BrowserWindow, app, session, net } from "electron";
+import { BrowserWindow, app, session, net, screen } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
@@ -11,6 +11,11 @@ import url from "url";
 import path from "path";
 import { delay } from "./utils/Tools.js";
 
+
+/** boss机器人窗口 */
+let bossWindow;
+/** boss机器人工作台 */
+let dashboardWindow;
 
 /** 扫码登录定时检测器 */
 let scanToLoginCheckInterval;
@@ -154,9 +159,22 @@ const main = async () => {
     }
   );
 
-  const window = new BrowserWindow({
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+  const dashboardWindowWidth = Math.floor(screenWidth / 2); // 窗口宽度为屏幕宽度的一半
+  // const dashboardWindowHeight = Math.floor(screenHeight * 0.75); // 窗口高度为屏幕高度的3/4，可根据需要调整
+  const dashboardWindowHeight = 200; // 窗口高度为屏幕高度的3/4，可根据需要调整
+  const dashboardWindowX = Math.floor(dashboardWindowWidth / 16); // x坐标设置为0，即紧贴屏幕左边缘
+  const dashboardWindowY = Math.floor((screenHeight - dashboardWindowHeight) / 16); // 计算y坐标以使窗口在垂直方向上居中
+  const bossWindowX = dashboardWindowX;
+  const bossWindowY = dashboardWindowY + dashboardWindowHeight - 5;
+
+
+  bossWindow = new BrowserWindow({
+    x: bossWindowX,
+    y: bossWindowY,
     width: 1366,
-    height: 768,
+    height: 600,
     icon: path.join(__dirname, 'assets/favicon.ico'),
     webPreferences:{
       webSecurity:false,
@@ -165,16 +183,18 @@ const main = async () => {
       nodeIntegrationInSubFrames: true,
       allowRunningInsecureContent: true,
       preload: path.join(__dirname, "renderer/preload.mjs")
-    }
+    },
+    autoHideMenuBar: true,
+    resizable: false
   });
   // const url = "https://www.zhipin.com/web/chat/job/list";
 
-  GetBossHttpData(window)
+  GetBossHttpData(bossWindow)
 
   const url = ComponentsObject["登录/注册"].url;
-  await window.loadURL(url);
+  await bossWindow.loadURL(url);
 
-  const page = await pie.getPage(browser, window);
+  const page = await pie.getPage(browser, bossWindow);
 
 
   page.on("load", (event) => {
@@ -273,7 +293,72 @@ const main = async () => {
   // test2(page)
   // test3(page)
   // test4(page)
+  
+  dashboardWindow = new BrowserWindow({
+    x: dashboardWindowX,
+    y: dashboardWindowY,
+    width: 1366,
+    height: 200,
+    webPreferences:{
+        nodeIntegration: true,
+        nodeIntegrationInSubFrames: true,
+        contextIsolation: false,
+        webSecurity: false,
+        allowRunningInsecureContent: true
+    },
+    resizable: false
+  })
+  dashboardWindow.loadFile("renderer/pure/index.html")
+  dashboardWindow.on("move", () => {
+    clearTimeout(dashboardWindow.moveTimeout);
+    dashboardWindow.moveTimeout = setTimeout(() => {
+      updateSecondWindowPosition();
+    }, 100);
+  })
+  handleRenderer()
 };
+
+// 更新boss窗口的函数
+const updateSecondWindowPosition = () => {
+  if (!dashboardWindow || dashboardWindow.isDestroyed()) return;
+  if (!bossWindow || bossWindow.isDestroyed()) return;
+
+  const mainPosition = dashboardWindow.getPosition();
+  const mainSize = dashboardWindow.getSize();
+
+  // 计算窗口B的新位置
+  const newX = mainPosition[0];
+  const newY = mainPosition[1] + mainSize[1];
+
+  // 设置窗口B的位置
+  bossWindow.setPosition(newX, newY);
+}
+
+/** 处理渲染进程 */
+const handleRenderer = () => {
+    ipcMain.handle("data-transfer" ,(event,data) => {
+        console.log("data:", data)
+    })
+
+    /** 监听渲染进程的toggleTargetWindow通知 */
+    ipcMain.handle("toggleTargetWindow",(event, data) => {
+      if(data.status === "show") {
+        targetWin.showInactive()
+      } else {
+        targetWin.hide() 
+      }
+    })
+
+    /** 监听渲染进程的定时器通知 */
+    ipcMain.handle("tick-tock", (event,data ) => {
+      startTimer(data.status)
+    })
+
+    ipcMain.handle("fetch-response",(event, data) => {
+      debugger
+      console.log(data)
+    })
+}
 
 /** 获取token */
 const getToken = async() => {

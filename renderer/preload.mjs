@@ -1,14 +1,14 @@
 // import { 
 //   ipcRenderer
 // } from "electron";
-console.log("载入preload.mjs")
-
+console.log("已载入preload.mjs")
+  
  // 更新响应显示
-function updateResponse(data, type) {
-  debugger
-  console.log(data)
-    // responseElement.textContent = `// 来自${type}的响应\n${JSON.stringify(data, null, 2)}`;
-}
+// function updateResponse(data, type) {
+//   debugger
+//   console.log(data)
+//     // responseElement.textContent = `// 来自${type}的响应\n${JSON.stringify(data, null, 2)}`;
+// }
 
 // 保存原始方法
 // const originalFetch = window.fetch;
@@ -89,3 +89,36 @@ function updateResponse(data, type) {
 //     window.XMLHttpRequest = CustomHttpRequest;
 //     console.log(window.XMLHttpRequest)
 // })();
+
+import { contextBridge, ipcRenderer } from 'electron';
+
+// 1. 暴露应用版本信息（安全只读数据）
+contextBridge.exposeInMainWorld('electronAPI', {
+  // 获取版本信息
+  getVersions: () => {
+    return {
+      node: process.versions.node,
+      chrome: process.versions.chrome,
+      electron: process.versions.electron
+    };
+  },
+
+  // 2. 暴露进程间通信 (IPC) 方法
+  // 使用 invoke/handle 模式进行请求-响应式通信[6,7](@ref)
+  invokeExample: (data) => {
+    debugger
+    return ipcRenderer.invoke('channel-name', data);
+  },
+
+  // 3. 使用 on/send 模式进行事件监听式通信[6](@ref)
+  // 注意：通常更推荐使用 invoke/handle，但某些场景（如持续消息流）可能需要 on/send
+  onUpdate: (callback) => {
+    ipcRenderer.on('update-data', callback);
+  },
+  removeListener: (channel, callback) => {
+    ipcRenderer.removeListener(channel, callback);
+  },
+  sendMessage: (channel, data) => {
+    ipcRenderer.invoke(channel, data);
+  }
+});
