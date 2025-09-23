@@ -11,7 +11,7 @@
     "preview": "rsbuild preview"
   },
   "engines": {
-    "node": "^18.18.0"
+    "node": ">=18.18.0"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",

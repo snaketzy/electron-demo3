@@ -298,17 +298,21 @@ const main = async () => {
     x: dashboardWindowX,
     y: dashboardWindowY,
     width: 1366,
-    height: 200,
+    height: 400,
     webPreferences:{
-        nodeIntegration: true,
-        nodeIntegrationInSubFrames: true,
-        contextIsolation: false,
+        preload: path.join(__dirname, './renderer/preload.mjs'),
+        nodeIntegration: false,
+        nodeIntegrationInSubFrames: false,
+        contextIsolation: true,
         webSecurity: false,
-        allowRunningInsecureContent: true
+        allowRunningInsecureContent: true,
+        sandbox: false
     },
     resizable: false
   })
-  dashboardWindow.loadFile("renderer/pure/index.html")
+  // dashboardWindow.loadFile("renderer/pure/index.html")
+  dashboardWindow.loadURL("http://localhost:9188")
+  
   dashboardWindow.on("move", () => {
     clearTimeout(dashboardWindow.moveTimeout);
     dashboardWindow.moveTimeout = setTimeout(() => {
@@ -384,11 +388,13 @@ const getToken = async() => {
 const scanToLogin = async(page) => {
   try {
     if(page.url().includes(ComponentsObject["登录/注册"].url)) {
-      await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
-      const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
-      if(qrBtn) {
-        delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
-        return
+      const qrBtnExist = await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+      if(qrBtnExist) {
+        const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+        if(qrBtn) {
+          delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+          return
+        }
       }
     }
   } catch (err) {
