@@ -13,6 +13,7 @@
     "pacakge": "electron-builder --dir"
   },
   "dependencies": {
+    "dayjs": "^1.11.18",
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12",
     "ghost-cursor": "^1.4.1",

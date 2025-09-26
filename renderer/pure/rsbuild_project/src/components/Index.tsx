@@ -25,6 +25,8 @@ import dayjs from "dayjs";
 interface StateInterface {
   /** 是否显示boss窗口 */
   showBoss: boolean;
+  company:string;
+  name: string;
 }
 
 /** 1、信息认证 */
@@ -32,7 +34,9 @@ const Index = () => {
   let nextPageUrl = "";
   
   const [state, setState] = useState<StateInterface>({
-    showBoss: false
+    showBoss: true,
+    company:"",
+    name:""
   });
 
   const navigate = useNavigate();
@@ -55,22 +59,30 @@ const Index = () => {
     // 获取版本信息
     const versions = window.electronAPI?.getVersions();
     if (versions) {
-      debugger
+      // debugger
     }
+
     // 监听主进程发送的消息
     const handleUpdate = (event, data) => {
-      console.log('Received update from main process:', data);
+      console.log('Test Received update from main process:', data);
+      // debugger
+      setState({
+        ...state,
+        company: data.brandName,
+        name: data.name,
+      })
     };
 
-    window.electronAPI?.onUpdate(handleUpdate);
+    window.electronAPI?.sendMessageToRender(handleUpdate);
     dispatch(updateCommonState({
       qrcodeUrl: location.href
     }))
     return () => {
-      window.electronAPI?.removeListener('update-data', handleUpdate);
+      window.electronAPI?.removeListener('sendMessageToRender', handleUpdate);
     };
   }, [])
-  
+
+
 
   const updateState = (params: any) => {
     setState(prev => ({
@@ -79,18 +91,14 @@ const Index = () => {
     }))
   }
 
-  const {
-    qrcode,
-    oldgroupCode
-  } = state;
-
   const inputOnBlur = () => {
     window.scroll(0, 0); // 让页面归位
   };
 
   const onServicePage = () => {
-    updateState({ 
-      isServiceModal: false 
+    updateState({
+      ...state,
+      isServiceModal: false
     });
     navigate(`/serviceDetail?nextPageUrl=${nextPageUrl}`);
   };
@@ -117,8 +125,9 @@ const Index = () => {
 
   const sendMessage = () => {
     // 发送消息到主进程
-    window.electronAPI?.sendMessage('message-from-renderer', { showBoss: !state.showBoss });
+    window.electronAPI?.sendMessageToMain('message-from-renderer', { showBoss: !state.showBoss });
     setState({
+      ...state,
       showBoss:!state.showBoss
     })
   };
@@ -143,7 +152,7 @@ const Index = () => {
             }
           ]}
         >
-          <span>{ index_form.getFieldValue("company") }</span>
+          <span>{ state.company }</span>
         </Form.Item>
         <Form.Item
           name="name"
@@ -155,7 +164,7 @@ const Index = () => {
             }
           ]}
         >
-          <span>{ index_form.getFieldValue("name") }</span>
+          <span>{ state.name }</span>
         </Form.Item>
         <Form.Item
           name="runningRange"
@@ -169,7 +178,13 @@ const Index = () => {
         >
           <TimePicker.RangePicker format= "HH:mm" />
         </Form.Item>
-        <Button size="large" onClick={ index_form.submit } type="primary" block = { true }>提交</Button>
+        {/*<Button size="large" onClick={ () => {*/}
+        {/*  setState({*/}
+        {/*    ...state,*/}
+        {/*    company:"test1",*/}
+        {/*    name:"test11"*/}
+        {/*  })*/}
+        {/*} } type="primary" block = { true }>提交</Button>*/}
         
         <Button size="large" onClick={() => {
           sendMessage()

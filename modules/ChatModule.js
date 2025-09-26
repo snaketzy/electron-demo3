@@ -3,6 +3,7 @@ import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
 import { consoleColor, token, typeDelay, } from "../config.js";
+import dayjs from "dayjs";
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
@@ -44,16 +45,16 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
           console.log(text.trim())
           await item.click({debugHighlight:true})
         
-          // const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
-          // const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
-        
-          // const historyMsgResult = await historyMsgResponse.json();
-          // const geekInfoResult = await geekInfoResponse.json();
-          // const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
-          // const replyMessageResult = await replyMessage(page,chatContext);
+          const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
+          const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
+        debugger
+          const historyMsgResult = await historyMsgResponse.json();
+          const geekInfoResult = await geekInfoResponse.json();
+          const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
+          const replyMessageResult = await replyMessage(page,chatContext);
           // 如果可以交换手机和微信，就执行对应操作
           const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page)
-          // console.log(replyMessageResult)
+          console.log(replyMessageResult)
           if(index === 0) {
             // return "全部对话完成"
           }
@@ -75,27 +76,63 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
 const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
   try {
     const geekInfo = geekInfoResult.zpData.data;
-    // const response = await net.fetch({
-    const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript', {
-      method:"post",
-      headers: {
-        'Content-Type': "application/json",
-        'Authorization': token,
-      },
-      body: JSON.stringify({
-        bossJobName: geekInfo.position ,
-        robotCode: `${userInfo.userId}`,
-        scriptType: "4",
-        scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
-      })
-    });
-    if(response.ok) {
-      const body = await response.json()
-      return "测试对话答复"
+    const submitChatArray = assembleSubmitChatArray(historyMsgResult,geekInfo);
+    const submitChatResponse = await net.fetch("http://192.168.2.6:8080/api/Candidate/ListrtCommunicationRecord", {
+      communicationRecordsInsertModels: submitChatArray
+    })
+    if(submitChatResponse.ok) {
+      const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript', {
+        method:"post",
+        headers: {
+          'Content-Type': "application/json",
+          'Authorization': token,
+        },
+        body: JSON.stringify({
+          bossJobName: geekInfo.position ,
+          robotCode: `${userInfo.userId}`,
+          scriptType: "4",
+          scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
+        })
+      });
+      if(response.ok) {
+        const body = await response.json()
+        return "测试对话答复"
+      }
+    } else {
+      console.log(consoleColor["红色"],submitChatResponse)
     }
   } catch(error) {
     return error || "response failure"
   }
+}
+
+/**
+ * 组装新沟通记录
+ * @param bossJobName
+ * @param bossCandidateID boss候选人ID（沟通列表人员ID）
+ * @param initiatingParty 1我司发起 2候选人发起
+ * @param communication 沟通内容ID用于区分聊天记录
+ * @param communicationTime 沟通时间
+ * @param contents 沟通记录
+ * @param candidateName 候选人姓名
+ */
+const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
+  const historyMsgResultArray = historyMsgResult.zpData.messages || [];
+  const chatArray = [];
+  if(historyMsgResultArray.length > 0) {
+    historyMsgResultArray.forEach(msg => {
+      chatArray.push({
+        bossJobName: geekInfo.position,
+        bossCandidateID: `${geekInfo.uid}`,
+        initiatingParty: msg.from.uid === geekInfo.uid ? 2 : 1,
+        communication: `${msg.mid}`,
+        communicationTime: dayjs(msg.time).format('YYYY-MM-DD HH:mm:ss'),
+        contents: msg.pushText,
+        candidateName: geekInfo.name
+      })
+    })
+  }
+  return chatArray;
 }
 
 /** 定位消息输入框，并回复 */
@@ -108,6 +145,7 @@ const replyMessage = async(page, chatContext) => {
 
 /** 交换手机和微信 */
 const applyCellPhoneAndWechat = async(page) => {
+  return
   let phoneResult = false;
   let wechatResult = false;
   await page.waitForSelector('span.operate-btn:not(.disabled)',{

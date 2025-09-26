@@ -1,4 +1,11 @@
-import { BrowserWindow, app, session, net, screen } from "electron";
+import {
+  BrowserWindow,
+  app,
+  session,
+  net,
+  screen,
+  ipcMain
+} from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
@@ -178,11 +185,11 @@ const main = async () => {
     icon: path.join(__dirname, 'assets/favicon.ico'),
     webPreferences:{
       webSecurity:false,
-      nodeIntegration: true,
+      nodeIntegration: false,
       contextIsolation: true,
-      nodeIntegrationInSubFrames: true,
+      nodeIntegrationInSubFrames: false,
       allowRunningInsecureContent: true,
-      preload: path.join(__dirname, "renderer/preload.mjs")
+      preload: path.join(__dirname, "./renderer/preload.mjs")
     },
     autoHideMenuBar: true,
     resizable: false
@@ -232,6 +239,9 @@ const main = async () => {
       if(bodyJson.code === 0 && bodyJson.zpData.userId) {
         userInfo = bodyJson.zpData
       }
+      delay(500).then(() => {
+        dashboardWindow.webContents.send("sendMessageToRender", userInfo);
+      })
       // 登陆失效状态，目前不走此逻辑分支
       if(bodyJson.code === 7) {
         return
@@ -340,6 +350,17 @@ const updateSecondWindowPosition = () => {
 
 /** 处理渲染进程 */
 const handleRenderer = () => {
+    // 处理预加载脚本转发的渲染进程消息
+    ipcMain.handle('message-from-renderer', async (event, data) => {
+      console.log(consoleColor["蓝色"], '返回渲染进程数据:', data);
+      if (data.showBoss) {
+        bossWindow.showInactive()
+      } else {
+        bossWindow.hide()
+      }
+      return 'Response from main process';
+    });
+
     ipcMain.handle("data-transfer" ,(event,data) => {
         console.log("data:", data)
     })
