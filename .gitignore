@@ -15,6 +15,6 @@ resources/.arch-internal-preview.css
 
 node_modules
 node_modules - 副本
-package - 副本
-package-lock - 副本
+package - 副本.json
+package-lock - 副本.json
 dist
