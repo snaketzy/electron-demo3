@@ -15,18 +15,18 @@ import { SIGN_SUCCESS_PAGE } from "../utils/constant";
 import Modal from "./common/Modal/Modal";
 import Dialog from "./common/Dialog/Dialog";
 import { useDispatch, useSelector } from 'react-redux';
-import { app_version, QRCODE_ManageRootUrl } from "../utils/constant";
-import Validator, { MOBILE } from "../utils/validator";
 import { updateCommonState } from "../store/commonSlice";
 import { ApplicationState } from "../store";
-import { Button, Form, Input, TimePicker } from "antd";
-import dayjs from "dayjs";
+import {Button, Descriptions, Form, Input, TimePicker} from "antd";
+import * as dayjs from "dayjs";
 
 interface StateInterface {
   /** 是否显示boss窗口 */
   showBoss: boolean;
   company:string;
   name: string;
+  module: string;
+  action: string;
 }
 
 /** 1、信息认证 */
@@ -36,7 +36,9 @@ const Index = () => {
   const [state, setState] = useState<StateInterface>({
     showBoss: true,
     company:"",
-    name:""
+    name:"",
+    module: "",
+    action: ""
   });
 
   const navigate = useNavigate();
@@ -66,10 +68,13 @@ const Index = () => {
     const handleUpdate = (event, data) => {
       console.log('Test Received update from main process:', data);
       // debugger
-      setState({
-        ...state,
-        company: data.brandName,
-        name: data.name,
+      updateState({
+        module: data.module,
+        action: data.action,
+        ...(data.module === "全局" && {
+          company: data.data.brandName,
+          name: data.data.name,
+        })
       })
     };
 
@@ -131,7 +136,7 @@ const Index = () => {
       showBoss:!state.showBoss
     })
   };
-  
+  index_form.setFieldsValue
   return (
     <div className="index-container">
       <Form
@@ -142,30 +147,6 @@ const Index = () => {
         form={ index_form }
         layout="vertical"
       >
-        <Form.Item
-          name="company"
-          label="公司"
-          initialValue= ""
-          rules={[
-            { 
-              required: true, message: "公司不能为空" 
-            }
-          ]}
-        >
-          <span>{ state.company }</span>
-        </Form.Item>
-        <Form.Item
-          name="name"
-          label="操作人员姓名"
-          initialValue= ""
-          rules={[
-            { 
-              required: true, message: "姓名不能为空" 
-            }
-          ]}
-        >
-          <span>{ state.name }</span>
-        </Form.Item>
         <Form.Item
           name="runningRange"
           label="运行时段"
@@ -185,11 +166,18 @@ const Index = () => {
         {/*    name:"test11"*/}
         {/*  })*/}
         {/*} } type="primary" block = { true }>提交</Button>*/}
-        
-        <Button size="large" onClick={() => {
-          sendMessage()
-        }} type="primary" block={true}>{ state.showBoss ? "隐藏" : "显示" }BOSS窗口</Button>
       </Form>
+      <Descriptions column={ 2 }>
+        <Descriptions.Item label="公司">{ state.company }</Descriptions.Item>
+        <Descriptions.Item label="操作人员">{ state.name }</Descriptions.Item>
+      </Descriptions>
+      <Descriptions column={ 2 }>
+        <Descriptions.Item label="当前模块">{ state.module }</Descriptions.Item>
+        <Descriptions.Item label="当前动作">{ state.action }</Descriptions.Item>
+      </Descriptions>
+      <Button className="toggle-boss-window" size="large" onClick={() => {
+        sendMessage()
+      }} type="primary" block={true}>{ state.showBoss ? "隐藏" : "显示" }BOSS窗口</Button>
     </div>
   );
 };

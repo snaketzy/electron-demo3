@@ -2,8 +2,9 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
-import { consoleColor, token, typeDelay, } from "../config.js";
-import dayjs from "dayjs";
+import {consoleColor, timeoutInterval, token, typeDelay,} from "../config.js";
+import dayjs from 'dayjs';
+
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
@@ -47,9 +48,10 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
         
           const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
           const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
-        debugger
+
           const historyMsgResult = await historyMsgResponse.json();
           const geekInfoResult = await geekInfoResponse.json();
+          await  delay(timeoutInterval)
           const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
           const replyMessageResult = await replyMessage(page,chatContext);
           // 如果可以交换手机和微信，就执行对应操作
@@ -78,7 +80,14 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
     const geekInfo = geekInfoResult.zpData.data;
     const submitChatArray = assembleSubmitChatArray(historyMsgResult,geekInfo);
     const submitChatResponse = await net.fetch("http://192.168.2.6:8080/api/Candidate/ListrtCommunicationRecord", {
-      communicationRecordsInsertModels: submitChatArray
+      method:"post",
+      headers: {
+        'Content-Type': "application/json",
+        'Authorization': token,
+      },
+      body: JSON.stringify({
+        communicationRecordsInsertModels: submitChatArray
+      })
     })
     if(submitChatResponse.ok) {
       const response = await net.fetch('http://192.168.2.6:8080/api/robot/getscript', {
@@ -89,14 +98,17 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
         },
         body: JSON.stringify({
           bossJobName: geekInfo.position ,
-          robotCode: `${userInfo.userId}`,
+          // robotCode: `${userInfo.userId}`,
+          bossCandidateID: `${geekInfo.uid}`,
           scriptType: "4",
-          scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
+          // scriptContent: JSON.stringify(historyMsgResult.zpData.messages)
         })
       });
       if(response.ok) {
         const body = await response.json()
-        return "测试对话答复"
+        return body.data.scriptContent
+      } else {
+        console.log(consoleColor["红色"],response)
       }
     } else {
       console.log(consoleColor["红色"],submitChatResponse)
@@ -138,7 +150,13 @@ const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
 /** 定位消息输入框，并回复 */
 const replyMessage = async(page, chatContext) => {
   const textArea = await page.$("div.boss-chat-editor-input");
-  await page.type("div.boss-chat-editor-input", chatContext ,{delay: typeDelay})
+  const lines = chatContext.split("\n");
+  for (const line of lines) {
+    await page.type("div.boss-chat-editor-input", line ,{delay: typeDelay})
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('Enter');
+    await page.keyboard.up('Shift');
+  }
   await page.keyboard.press('Enter');
   return "回复成功"
 }

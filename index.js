@@ -9,7 +9,16 @@ import {
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
-import { element1, element2, ComponentsObject, createMenu, consoleColor, setToken, setTokenExpireStart } from "./config.js";
+import {
+  element1,
+  element2,
+  ComponentsObject,
+  createMenu,
+  consoleColor,
+  setToken,
+  setTokenExpireStart,
+  timeoutInterval
+} from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
@@ -17,7 +26,9 @@ import { GetBossHttpData } from "./GetHttpData.js";
 import url from "url";
 import path from "path";
 import { delay } from "./utils/Tools.js";
-
+import dayjs from 'dayjs';
+// import * as customParseFormat from 'dayjs/plugin/customParseFormat';
+// dayjs.extend(customParseFormat);
 
 /** boss机器人窗口 */
 let bossWindow;
@@ -38,6 +49,14 @@ let historyMsg = undefined;
 let userInfo = undefined;
 /** 列表正在处理时，如果数据接口有反馈的判断标志位 */
 let isGeekListProcessing = false;
+/** 允许工作时间; 接受渲染进程的赋值 */
+let onlineRange = [];
+/** 工作间歇 单位 分钟; 接受渲染进程的赋值*/
+let workingGap = 30;
+/** 本次运行开始时间 */
+let latestBeginTime = undefined;
+/** 是否暂停 */
+let isPaused = false;
 
 /** 更新沟通数据 */
 const updateHistoryMsg = () => {
@@ -52,9 +71,10 @@ let __dirname = path.dirname(__filename);
 const checkScanToLoginIsExpire = (page) => {
   scanToLoginCheckInterval = setTimeout(() => {
     doCheckScanToLoginIsExpire(page)
-  }, 2000)
+  }, timeoutInterval)
 }
 
+/** 检查扫码登录是否过期 */
 const doCheckScanToLoginIsExpire = async(page) => {
   scanToLogin(page)
   console.log(consoleColor["蓝色"], "checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
@@ -63,6 +83,10 @@ const doCheckScanToLoginIsExpire = async(page) => {
     clearTimeout(scanToLoginCheckInterval)
     scanToLoginCheckInterval = null;
   } else {
+    // dashboardWindow.webContents.send("sendMessageToRender", {
+    //   module: ComponentsObject["登录/注册"].name,
+    //   action: "扫码登录",
+    // });
     await page.waitForSelector("button[ka='refresh_app_sao_qrcode']")
     const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
     if(refreshBtn) {
@@ -75,7 +99,10 @@ const doCheckScanToLoginIsExpire = async(page) => {
   }
 }
 
-/** 检查是否有桌面端弹框,如有则关闭 */
+/**
+ * 1、检查是否有桌面端弹框,如有则关闭
+ * 2、检查当前运行时常，默认超过30分钟暂停10分钟
+ */
 const checkDesktopDialog = (page) => {
   checkDesktopDialogInterval = setTimeout(async() => {
     try {
@@ -93,7 +120,7 @@ const checkDesktopDialog = (page) => {
       console.log(consoleColor["红色"], "checkDesktopDialog: no desk")
       checkDesktopDialog(page)
     }
-  }, 2000)
+  }, timeoutInterval)
 }
 
 /** 登录状态失效时的处理 */
@@ -111,13 +138,18 @@ const moduleProcessSchema = async(page) => {
   switch(true) {
     // 沟通模块
     case moduleUrl.includes("web/chat/index"):{
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: ComponentsObject["沟通"].name,
+        action: "跟未读消息牛人进行沟通",
+      });
      const afterHandleChatModule = new Promise((resolve) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
       afterHandleChatModule.then((val) => {
         page.reload(); 
-        delay(2000)
-        routeToMenu(page,ComponentsObject["推荐牛人"])
+        delay(timeoutInterval).then(async() => {
+          routeToMenu(page,ComponentsObject["推荐牛人"])
+        })
       })
       break;
     }
@@ -239,9 +271,14 @@ const main = async () => {
       if(bodyJson.code === 0 && bodyJson.zpData.userId) {
         userInfo = bodyJson.zpData
       }
-      delay(500).then(() => {
-        dashboardWindow.webContents.send("sendMessageToRender", userInfo);
+      dashboardWindow.webContents.on("did-finish-load", async () => {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["全局"].name,
+          action: "返回招聘者信息",
+          data: userInfo
+        });
       })
+
       // 登陆失效状态，目前不走此逻辑分支
       if(bodyJson.code === 7) {
         return
@@ -258,6 +295,10 @@ const main = async () => {
       if(isGeekListProcessing) {
         return
       } else {
+        // dashboardWindow.webContents.send("sendMessageToRender", {
+        //   module: ComponentsObject["推荐牛人"].name,
+        //   action: "在推荐牛人列表上进行打招呼操作",
+        // });
         isGeekListProcessing = true;
         console.log(onlineJobList)
         const jobId = new URLSearchParams(url.split("?")[1]).get("jobId");

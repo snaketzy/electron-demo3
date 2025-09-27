@@ -19,7 +19,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 注意：通常更推荐使用 invoke/handle，但某些场景（如持续消息流）可能需要 on/send
   sendMessageToRender: (callback) => {
     // ipcRenderer.on('update-data', callback);
-    debugger
     ipcRenderer.on("sendMessageToRender", callback);
   },
 
