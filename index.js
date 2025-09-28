@@ -233,6 +233,8 @@ const main = async () => {
     autoHideMenuBar: true,
     resizable: false
   });
+  // 保持窗口隐藏后持续渲染，以便puppeteer可以定位
+  bossWindow.webContents.setFrameRate(30)
   setBossWindow(bossWindow)
 
   // const url = "https://www.zhipin.com/web/chat/job/list";
