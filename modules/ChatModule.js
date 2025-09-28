@@ -8,9 +8,8 @@ import dayjs from 'dayjs';
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
-  console.log("沟通模块处理逻辑")
-  // resolve("本轮沟通模块业务处理完毕")
-  // return
+  console.log("开始【沟通】模块处理逻辑")
+
   // 切换到未读消息
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
     visible: true
@@ -24,8 +23,9 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
     action: "切换到【未读】标签",
   });
   await delay(timeoutInterval);
-  // const response = await fetchToken();
-  // console.log("请求token接口：", response)
+  resolve("本轮沟通模块业务处理完毕")
+  return
+
   const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
   if(locationResult) {
     dashboardWindow.webContents.send("sendMessageToRender", {
@@ -107,7 +107,7 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
             });
             await delay(timeoutInterval);
             if(funcContinue === 1) {
-              return "全部对话完成"
+              // return "全部对话完成"
             }
           }
         // }
@@ -126,7 +126,7 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
     // debugger
     await delay(timeoutInterval);
     if(funcContinue === 1) {
-      return "全部对话完成"
+      // return "全部对话完成"
     }
   }
   

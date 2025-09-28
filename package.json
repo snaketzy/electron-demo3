@@ -1,6 +1,6 @@
 {
-  "name": "electron-demo3",
-  "description": "测试Electron技术的掌握程度，整合puppeteer-in-electron的方案",
+  "name": "BossAutomateRobot",
+  "description": "Boss自动化机器人",
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
@@ -10,18 +10,30 @@
   "scripts": {
     "start": "chcp 65001 && electron . ",
     "automate": "node ./Automate.js",
-    "pacakge": "electron-builder --dir"
+    "pacakge": "electron-builder --dir",
+    "portable": "electron-builder --dir --win portable",
+    "msi": "electron-builder --win"
   },
   "dependencies": {
     "dayjs": "^1.11.18",
-    "electron": "^37.3.1",
-    "electron-builder": "^26.0.12",
     "ghost-cursor": "^1.4.1",
     "node-fetch": "2",
     "puppeteer-core": "^24.17.0",
     "puppeteer-in-electron": "^3.0.5"
   },
+  "devDependencies": {
+    "electron": "^37.3.1",
+    "electron-builder": "^26.0.12"
+  },
   "resolutions": {
     "minimatch": "9.0.5"
+  },
+  "build": {
+    "appId": "com.example.bossautomaterobot",
+    "productName": "Boss自动化机器人",
+    "win": {
+      "target": "portable",
+      "icon": "icons/icon.ico"
+    }
   }
 }

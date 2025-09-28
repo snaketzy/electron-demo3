@@ -60,6 +60,9 @@ let latestBeginTime = undefined;
 /** 是否暂停 */
 let isPaused = false;
 
+process.title = "Boss机器人";
+app.setName("Boss机器人")
+
 /** 更新沟通数据 */
 const updateHistoryMsg = () => {
   return historyMsg;
@@ -71,8 +74,16 @@ let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire =  (page) => {
+  let isWorkingTime = false;
+  const start = performance.now();
   scanToLoginCheckInterval = setTimeout( () => {
-    doCheckScanToLoginIsExpire(page)
+    if(!isWorkingTime) {
+      console.log(consoleColor["红色"],"非工作时间")
+      console.log("实际延迟:", performance.now() - start, "ms");
+      checkScanToLoginIsExpire(page);
+    } else {
+      doCheckScanToLoginIsExpire(page)
+    }
   }, timeoutInterval)
 }
 
@@ -89,7 +100,10 @@ const doCheckScanToLoginIsExpire = async(page) => {
     //   module: ComponentsObject["登录/注册"].name,
     //   action: "扫码登录",
     // });
-    await page.waitForSelector("button[ka='refresh_app_sao_qrcode']")
+    await page.waitForSelector("button[ka='refresh_app_sao_qrcode']",{
+      timeout: 50000,
+      visible: true
+    })
     const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
     if(refreshBtn) {
       clearTimeout(scanToLoginCheckInterval) // 清除循环器
@@ -209,11 +223,11 @@ const main = async () => {
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
   const dashboardWindowWidth = Math.floor(screenWidth / 2); // 窗口宽度为屏幕宽度的一半
   // const dashboardWindowHeight = Math.floor(screenHeight * 0.75); // 窗口高度为屏幕高度的3/4，可根据需要调整
-  const dashboardWindowHeight = 200; // 窗口高度为屏幕高度的3/4，可根据需要调整
+  const dashboardWindowHeight = 270; // 窗口高度为屏幕高度的3/4，可根据需要调整
   const dashboardWindowX = Math.floor(dashboardWindowWidth / 16); // x坐标设置为0，即紧贴屏幕左边缘
   const dashboardWindowY = Math.floor((screenHeight - dashboardWindowHeight) / 16); // 计算y坐标以使窗口在垂直方向上居中
   const bossWindowX = dashboardWindowX;
-  const bossWindowY = dashboardWindowY + dashboardWindowHeight - 5;
+  const bossWindowY = dashboardWindowY + dashboardWindowHeight ;
 
 
   bossWindow = new BrowserWindow({
@@ -231,7 +245,8 @@ const main = async () => {
       preload: path.join(__dirname, "./renderer/preload.mjs")
     },
     autoHideMenuBar: true,
-    resizable: false
+    resizable: false,
+    frame: false
   });
   // 保持窗口隐藏后持续渲染，以便puppeteer可以定位
   bossWindow.webContents.setFrameRate(30)
@@ -243,7 +258,7 @@ const main = async () => {
     x: dashboardWindowX,
     y: dashboardWindowY,
     width: 1366,
-    height: 300,
+    height: dashboardWindowHeight,
     icon: path.join(__dirname, 'assets/favicon.ico'),
     webPreferences:{
       preload: path.join(__dirname, './renderer/preload.mjs'),
@@ -474,7 +489,10 @@ const getToken = async() => {
 const scanToLogin = async(page) => {
   try {
     if(page.url().includes(ComponentsObject["登录/注册"].url)) {
-      const qrBtnExist = await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+      const qrBtnExist = await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path,{
+        timeout: 10000,
+        visible: true
+      })
       if(qrBtnExist) {
         const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
         if(qrBtn) {
