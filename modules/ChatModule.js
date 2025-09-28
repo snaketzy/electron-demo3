@@ -16,22 +16,25 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
     visible: true
   })
   const unreadButton = await page.$("div.chat-message-filter-left :last-child");
-  await delay(getRandomSecondsPrecise())
+  // await delay(getRandomSecondsPrecise())
+  await delay(timeoutInterval)
   await unreadButton.click({debugHighlight:true})
   dashboardWindow.webContents.send("sendMessageToRender", {
     module: ComponentsObject["沟通"].name,
     action: "切换到【未读】标签",
   });
+  await delay(timeoutInterval);
   // const response = await fetchToken();
   // console.log("请求token接口：", response)
   const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
   if(locationResult) {
     dashboardWindow.webContents.send("sendMessageToRender", {
       module: ComponentsObject["沟通"].name,
-      action: "本轮沟通模块业务处理完毕",
+      action: "本轮【沟通】模块业务处理完毕",
     });
+    await delay(timeoutInterval);
     resolve("本轮沟通模块业务处理完毕")
-  } 
+  }
 }
 
 /** 定位每个未读对话，并获得对应的对话记录 */
@@ -46,11 +49,11 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
     module: ComponentsObject["沟通"].name,
     action: "定位【沟通】模块的所有【未读】消息",
   });
+  await delay(timeoutInterval);
   // return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
     for(const [index,item] of unreadItems.entries()) {
       try {
-        
         // await item.click()
         // const historyMsg = await updateHistoryMsg();
         const text = await item.evaluate(item => item.textContent);
@@ -72,19 +75,19 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
             module: ComponentsObject["沟通"].name,
             action: `从boss获取和【${text.trim()}】的历史聊天记录`,
           });
-
+          await delay(timeoutInterval);
           const geekInfoResult = await geekInfoResponse.json();
           dashboardWindow.webContents.send("sendMessageToRender", {
             module: ComponentsObject["沟通"].name,
             action: `从boss获取【${text.trim()}】的信息`,
           });
-
+          await delay(timeoutInterval);
           const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
           dashboardWindow.webContents.send("sendMessageToRender", {
             module: ComponentsObject["沟通"].name,
             action: `从大数据模型生成回复【${text.trim()}】的内容`,
           });
-          await delay(timeoutInterval)
+          await delay(timeoutInterval);
           const replyMessageResult = await replyMessage(page,chatContext, text);
 
           // 如果可以交换手机和微信，就执行对应操作
@@ -102,6 +105,7 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
               module: ComponentsObject["沟通"].name,
               action: `全部${unreadItems.length}个未读对话完成`,
             });
+            await delay(timeoutInterval);
             if(funcContinue === 1) {
               return "全部对话完成"
             }
@@ -120,6 +124,7 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
     }
   } else {
     // debugger
+    await delay(timeoutInterval);
     if(funcContinue === 1) {
       return "全部对话完成"
     }
@@ -248,7 +253,8 @@ const applyCellPhoneAndWechat = async(page, text) => {
       phoneResult = true;
       await element.click({debugHighlight:true});
       await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
-      await delay(getRandomSecondsPrecise())
+      // await delay(getRandomSecondsPrecise())
+      await delay(timeoutInterval)
       const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
       await phoneBtn.click({debugHighlight:true})
     }

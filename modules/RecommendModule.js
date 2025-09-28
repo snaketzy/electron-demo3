@@ -14,12 +14,13 @@ import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
  */
 export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, resolve) => {
   console.log(geekList[0])
-  let funcContinue = 1;
+  let funcContinue = 0;
   if(!funcContinue) {
     console.log(consoleColor["蓝色"],"测试中，跳过handleRecommendModule流程")
     resolve("完成");
     return
   }
+  return
 
   for(const [index,geek] of geekList.entries()) {
     try {

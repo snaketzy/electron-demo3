@@ -25,8 +25,8 @@ export const setTokenExpireStart = (timestamp) => {
   tokenExpireStart = timestamp;
 }
 
-/** 定时器间隔 */
-export let timeoutInterval = 2000;
+/** 常规定时器间隔 */
+export let timeoutInterval = 5000;
 
 /** input框输入延时 */
 export let typeDelay = 200;

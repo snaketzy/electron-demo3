@@ -70,8 +70,8 @@ let __filename = url.fileURLToPath(import.meta.url);
 let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
-const checkScanToLoginIsExpire = (page) => {
-  scanToLoginCheckInterval = setTimeout(() => {
+const checkScanToLoginIsExpire =  (page) => {
+  scanToLoginCheckInterval = setTimeout( () => {
     doCheckScanToLoginIsExpire(page)
   }, timeoutInterval)
 }
@@ -81,9 +81,9 @@ const doCheckScanToLoginIsExpire = async(page) => {
   scanToLogin(page)
   console.log(consoleColor["蓝色"], "checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
   if(!page.url().includes("web/user/?ka=header-login")) {
-    moduleProcessSchema(page)
     clearTimeout(scanToLoginCheckInterval)
     scanToLoginCheckInterval = null;
+    moduleProcessSchema(page)
   } else {
     // dashboardWindow.webContents.send("sendMessageToRender", {
     //   module: ComponentsObject["登录/注册"].name,
@@ -136,24 +136,25 @@ const handleCheckScanToLoginIsExpire = async(page, btn) => {
 /** 各核心模块业务处理逻辑 */
 const moduleProcessSchema = async(page) => {
   const moduleUrl = page.url();
-  // clearTimeout(scanToLoginCheckInterval)
   switch(true) {
     // 沟通模块
     case moduleUrl.includes("web/chat/index"):{
       dashboardWindow.webContents.send("sendMessageToRender", {
         module: ComponentsObject["沟通"].name,
-        action: `进入【${ComponentsObject["沟通"].name}】模块`,
+        action: `已进入【${ComponentsObject["沟通"].name}】模块`,
       });
-     const afterHandleChatModule = new Promise((resolve) => {
+      await delay(timeoutInterval);
+      const afterHandleChatModule = new Promise((resolve) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
       })
-      afterHandleChatModule.then((val) => {
-        page.reload(); 
-        delay(timeoutInterval).then(async() => {
-          dashboardWindow.webContents.send("sendMessageToRender", {
-            module: ComponentsObject["沟通"].name,
-            action: `跳转【${ComponentsObject["推荐牛人"].name}】模块`,
-          });
+      afterHandleChatModule.then(async (val) => {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["沟通"].name,
+          action: `刷新本模块后，跳转【${ComponentsObject["推荐牛人"].name}】模块`,
+        });
+        await delay(timeoutInterval);
+        page.reload().then(async() => {
+          await delay(timeoutInterval);
           await routeToMenu(page, ComponentsObject["推荐牛人"])
         })
       })
@@ -233,10 +234,7 @@ const main = async () => {
     resizable: false
   });
   setBossWindow(bossWindow)
-  bossWindow.webContents.on("did-finish-load", async () => {
-    checkScanToLoginIsExpire(page);
-    checkDesktopDialog(page);
-  })
+
   // const url = "https://www.zhipin.com/web/chat/job/list";
 
   dashboardWindow = new BrowserWindow({
@@ -265,10 +263,12 @@ const main = async () => {
 
     const url = ComponentsObject["登录/注册"].url;
     await bossWindow.loadURL(url);
+    await delay(timeoutInterval)
+    checkScanToLoginIsExpire(page);
+    checkDesktopDialog(page);
   })
 
   const page = await pie.getPage(browser, bossWindow);
-
 
   page.on("load", (event) => {
     // debugger
@@ -349,9 +349,15 @@ const main = async () => {
             return handleRecommendModule(page, geekList, userInfo, jobInfo, resolve)
           })
           // 推荐牛人列表
-          afterHandleRecommendModule.then((val) => {
+          afterHandleRecommendModule.then(async (val) => {
             isGeekListProcessing = false;
-            debugger
+            dashboardWindow.webContents.send("sendMessageToRender", {
+              module: ComponentsObject["推荐牛人"].name,
+              action: `跳转【${ComponentsObject["沟通"].name}】模块`,
+            });
+            await delay(timeoutInterval)
+            await routeToMenu(page, ComponentsObject["沟通"])
+            checkScanToLoginIsExpire(page);
           })
         }
       }
@@ -484,7 +490,8 @@ const scanToLogin = async(page) => {
 const routeToMenu = async(page, routeElement) => {
   await page.waitForSelector(routeElement.path)
   const element = await page.$(routeElement.path)
-  delay(timeoutInterval).then(async() =>await element.click({debugHighlight:true}))
+  // delay(timeoutInterval).then(async() =>)
+  await element.click({debugHighlight:true})
 }
 
 
