@@ -8,6 +8,16 @@ export const element2 = ".job-name-input";
 /** url前缀 */
 export const prefixUrl = "https://www.zhipin.com";
 
+export let dashboardWindow;
+export const setDashboardWindow = (window) => {
+  dashboardWindow = window;
+}
+
+export let bossWindow;
+export const setBossWindow = (window) => {
+  bossWindow = window;
+}
+
 /** token开始生效时间 */
 export let tokenExpireStart = null;
 

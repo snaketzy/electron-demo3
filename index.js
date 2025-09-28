@@ -17,7 +17,9 @@ import {
   consoleColor,
   setToken,
   setTokenExpireStart,
-  timeoutInterval
+  timeoutInterval,
+  setDashboardWindow,
+  setBossWindow
 } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
@@ -125,7 +127,7 @@ const checkDesktopDialog = (page) => {
 
 /** 登录状态失效时的处理 */
 const handleCheckScanToLoginIsExpire = async(page, btn) => {
-  delay(1000).then(async() => {
+  delay(timeoutInterval).then(async() => {
     await btn.click({debugHighlight:true})
     checkScanToLoginIsExpire(page)
   })
@@ -140,7 +142,7 @@ const moduleProcessSchema = async(page) => {
     case moduleUrl.includes("web/chat/index"):{
       dashboardWindow.webContents.send("sendMessageToRender", {
         module: ComponentsObject["沟通"].name,
-        action: "跟未读消息牛人进行沟通",
+        action: `进入【${ComponentsObject["沟通"].name}】模块`,
       });
      const afterHandleChatModule = new Promise((resolve) => {
         return handleChatModule(page,updateHistoryMsg, userInfo, resolve)  
@@ -148,7 +150,11 @@ const moduleProcessSchema = async(page) => {
       afterHandleChatModule.then((val) => {
         page.reload(); 
         delay(timeoutInterval).then(async() => {
-          routeToMenu(page,ComponentsObject["推荐牛人"])
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["沟通"].name,
+            action: `跳转【${ComponentsObject["推荐牛人"].name}】模块`,
+          });
+          await routeToMenu(page, ComponentsObject["推荐牛人"])
         })
       })
       break;
@@ -226,12 +232,40 @@ const main = async () => {
     autoHideMenuBar: true,
     resizable: false
   });
+  setBossWindow(bossWindow)
+  bossWindow.webContents.on("did-finish-load", async () => {
+    checkScanToLoginIsExpire(page);
+    checkDesktopDialog(page);
+  })
   // const url = "https://www.zhipin.com/web/chat/job/list";
 
-  GetBossHttpData(bossWindow)
+  dashboardWindow = new BrowserWindow({
+    x: dashboardWindowX,
+    y: dashboardWindowY,
+    width: 1366,
+    height: 300,
+    icon: path.join(__dirname, 'assets/favicon.ico'),
+    webPreferences:{
+      preload: path.join(__dirname, './renderer/preload.mjs'),
+      nodeIntegration: false,
+      nodeIntegrationInSubFrames: false,
+      contextIsolation: true,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
+      sandbox: false
+    },
+    resizable: false
+  })
+  setDashboardWindow(dashboardWindow)
+  // dashboardWindow.loadFile("renderer/pure/index.html")
+  dashboardWindow.loadURL("http://localhost:9188")
 
-  const url = ComponentsObject["登录/注册"].url;
-  await bossWindow.loadURL(url);
+  dashboardWindow.webContents.on("did-finish-load", async () => {
+    GetBossHttpData(bossWindow)
+
+    const url = ComponentsObject["登录/注册"].url;
+    await bossWindow.loadURL(url);
+  })
 
   const page = await pie.getPage(browser, bossWindow);
 
@@ -271,13 +305,13 @@ const main = async () => {
       if(bodyJson.code === 0 && bodyJson.zpData.userId) {
         userInfo = bodyJson.zpData
       }
-      dashboardWindow.webContents.on("did-finish-load", async () => {
-        dashboardWindow.webContents.send("sendMessageToRender", {
-          module: ComponentsObject["全局"].name,
-          action: "返回招聘者信息",
-          data: userInfo
-        });
-      })
+
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: ComponentsObject["全局"].name,
+        action: "返回招聘者信息",
+        data: userInfo
+      });
+
 
       // 登陆失效状态，目前不走此逻辑分支
       if(bodyJson.code === 7) {
@@ -285,7 +319,7 @@ const main = async () => {
         await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
         const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
         if(qrBtn) {
-          delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+          delay(timeoutInterval).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
           return
         }
       }
@@ -336,8 +370,7 @@ const main = async () => {
   });
 
   getToken();
-  checkScanToLoginIsExpire(page);
-  checkDesktopDialog(page);
+
   createMenu();
   
   // test1(page)
@@ -345,24 +378,7 @@ const main = async () => {
   // test3(page)
   // test4(page)
   
-  dashboardWindow = new BrowserWindow({
-    x: dashboardWindowX,
-    y: dashboardWindowY,
-    width: 1366,
-    height: 400,
-    webPreferences:{
-        preload: path.join(__dirname, './renderer/preload.mjs'),
-        nodeIntegration: false,
-        nodeIntegrationInSubFrames: false,
-        contextIsolation: true,
-        webSecurity: false,
-        allowRunningInsecureContent: true,
-        sandbox: false
-    },
-    resizable: false
-  })
-  // dashboardWindow.loadFile("renderer/pure/index.html")
-  dashboardWindow.loadURL("http://localhost:9188")
+
   
   dashboardWindow.on("move", () => {
     clearTimeout(dashboardWindow.moveTimeout);
@@ -454,7 +470,7 @@ const scanToLogin = async(page) => {
       if(qrBtnExist) {
         const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
         if(qrBtn) {
-          delay(1000).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
+          delay(timeoutInterval).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
           return
         }
       }
@@ -468,7 +484,7 @@ const scanToLogin = async(page) => {
 const routeToMenu = async(page, routeElement) => {
   await page.waitForSelector(routeElement.path)
   const element = await page.$(routeElement.path)
-  delay(1000).then(async() =>await element.click({debugHighlight:true}))
+  delay(timeoutInterval).then(async() =>await element.click({debugHighlight:true}))
 }
 
 

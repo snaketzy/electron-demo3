@@ -2,7 +2,7 @@ import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
-import {consoleColor, timeoutInterval, token, typeDelay,} from "../config.js";
+import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token, typeDelay,} from "../config.js";
 import dayjs from 'dayjs';
 
 
@@ -18,21 +18,34 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
   const unreadButton = await page.$("div.chat-message-filter-left :last-child");
   await delay(getRandomSecondsPrecise())
   await unreadButton.click({debugHighlight:true})
+  dashboardWindow.webContents.send("sendMessageToRender", {
+    module: ComponentsObject["沟通"].name,
+    action: "切换到【未读】标签",
+  });
   // const response = await fetchToken();
   // console.log("请求token接口：", response)
   const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
   if(locationResult) {
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: ComponentsObject["沟通"].name,
+      action: "本轮沟通模块业务处理完毕",
+    });
     resolve("本轮沟通模块业务处理完毕")
   } 
 }
 
 /** 定位每个未读对话，并获得对应的对话记录 */
 const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
-  await page.waitForSelector("div.user-list div[role='group'] > div",{
+  let funcContinue = 1;
+  await page.waitForSelector("div.user-list div[role='group'] > div, div.no-data",{
     timeout: 5000,
     visible: true
   });
   const unreadItems = await page.$$("div.user-list div[role='group'] > div");
+  dashboardWindow.webContents.send("sendMessageToRender", {
+    module: ComponentsObject["沟通"].name,
+    action: "定位【沟通】模块的所有【未读】消息",
+  });
   // return "全部对话完成"
   if(unreadItems && unreadItems.length > 0) {
     for(const [index,item] of unreadItems.entries()) {
@@ -42,36 +55,76 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
         // const historyMsg = await updateHistoryMsg();
         const text = await item.evaluate(item => item.textContent);
         // if(index === 0 && text.trim().includes("汤哲")) {
-        if(index === 0 && text.trim().includes("汤哲")) {
+        // if(true) {
           console.log(text.trim())
           await item.click({debugHighlight:true})
-        
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["沟通"].name,
+            action: `共${unreadItems.length}条未读消息，当前是第${ index + 1}条，来自【${text.trim()}】`,
+          });
+
           const historyMsgResponse = await page.waitForResponse(response => response.url().includes('historyMsg') && response.status() === 200);
+
           const geekInfoResponse = await page.waitForResponse(response => response.url().includes('geek/info') && response.status() === 200);
 
           const historyMsgResult = await historyMsgResponse.json();
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["沟通"].name,
+            action: `从boss获取和【${text.trim()}】的历史聊天记录`,
+          });
+
           const geekInfoResult = await geekInfoResponse.json();
-          await  delay(timeoutInterval)
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["沟通"].name,
+            action: `从boss获取【${text.trim()}】的信息`,
+          });
+
           const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
-          const replyMessageResult = await replyMessage(page,chatContext);
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["沟通"].name,
+            action: `从大数据模型生成回复【${text.trim()}】的内容`,
+          });
+          await delay(timeoutInterval)
+          const replyMessageResult = await replyMessage(page,chatContext, text);
+
           // 如果可以交换手机和微信，就执行对应操作
-          const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page)
+          const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, text)
           console.log(replyMessageResult)
-          if(index === 0) {
-            // return "全部对话完成"
-          }
-          // if(index === unreadItems.length - 1) {
-          //   return "全部对话完成"
+          // if(index === 0) {
+          //   dashboardWindow.webContents.send("sendMessageToRender", {
+          //     module: ComponentsObject["沟通"].name,
+          //     action: `全部${unreadItems.length}个未读对话完成`,
+          //   });
+          //   // return "全部对话完成"
           // }
-        } 
+          if(index === unreadItems.length - 1) {
+            dashboardWindow.webContents.send("sendMessageToRender", {
+              module: ComponentsObject["沟通"].name,
+              action: `全部${unreadItems.length}个未读对话完成`,
+            });
+            if(funcContinue === 1) {
+              return "全部对话完成"
+            }
+          }
+        // }
         // else {
         //   return "全部对话完成"
         // }
       } catch(error) {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["沟通"].name,
+          action: `处理第 ${index + 1} 个未读消息时出错, ${error}`,
+        });
         console.error(consoleColor["红色"],`处理第 ${index + 1} 个item时出错:`, error);
       }
     }
+  } else {
+    // debugger
+    if(funcContinue === 1) {
+      return "全部对话完成"
+    }
   }
+  
 }
 
 /** 根据对话上下文，从接口获取话术 */
@@ -97,7 +150,7 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
           'Authorization': token,
         },
         body: JSON.stringify({
-          bossJobName: geekInfo.position ,
+          bossJobName: geekInfo.positionName ,
           // robotCode: `${userInfo.userId}`,
           bossCandidateID: `${geekInfo.uid}`,
           scriptType: "4",
@@ -139,7 +192,7 @@ const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
         initiatingParty: msg.from.uid === geekInfo.uid ? 2 : 1,
         communication: `${msg.mid}`,
         communicationTime: dayjs(msg.time).format('YYYY-MM-DD HH:mm:ss'),
-        contents: msg.pushText,
+        contents: msg.pushText || "",
         candidateName: geekInfo.name
       })
     })
@@ -148,7 +201,15 @@ const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
 }
 
 /** 定位消息输入框，并回复 */
-const replyMessage = async(page, chatContext) => {
+const replyMessage = async(page, chatContext, text) => {
+  if(!chatContext) {
+    debugger
+    return;
+  }
+  dashboardWindow.webContents.send("sendMessageToRender", {
+    module: ComponentsObject["沟通"].name,
+    action: `回复【${text.trim()}】中`,
+  });
   const textArea = await page.$("div.boss-chat-editor-input");
   const lines = chatContext.split("\n");
   for (const line of lines) {
@@ -158,11 +219,19 @@ const replyMessage = async(page, chatContext) => {
     await page.keyboard.up('Shift');
   }
   await page.keyboard.press('Enter');
-  return "回复成功"
+  dashboardWindow.webContents.send("sendMessageToRender", {
+    module: ComponentsObject["沟通"].name,
+    action: `回复【${text.trim()}】完成`,
+  });
+  return "回复完成"
 }
 
 /** 交换手机和微信 */
-const applyCellPhoneAndWechat = async(page) => {
+const applyCellPhoneAndWechat = async(page, text) => {
+  dashboardWindow.webContents.send("sendMessageToRender", {
+    module: ComponentsObject["沟通"].name,
+    action: `尝试和【${text.trim()}】交换【手机】及【微信】`,
+  });
   return
   let phoneResult = false;
   let wechatResult = false;
