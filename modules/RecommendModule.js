@@ -1,7 +1,7 @@
 import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
-import {ComponentsObject, consoleColor, dashboardWindow, token} from "../config.js";
+import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token} from "../config.js";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
 
 /** 
@@ -16,6 +16,7 @@ export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, re
   console.log(geekList[0])
   let funcContinue = 0;
   if(!funcContinue) {
+    await delay(timeoutInterval);
     console.log(consoleColor["蓝色"],"测试中，跳过handleRecommendModule流程")
     resolve("完成");
     return
@@ -117,15 +118,15 @@ const checkCandidate = async(frame,geek) => {
 /** 定位打招呼按钮 */
 const getGreetingBtn = async(frame,geek) => {
   await frame.waitForSelector(`div[data-geekid="${geek.encryptGeekId}"]`,{
-    timeout: 5000,
+    timeout: timeoutInterval,
     visible: true
   })
   const geekElement =await frame.$(`div[data-geekid="${geek.encryptGeekId}"]`)
   const parentHandle = await geekElement.evaluateHandle(node => node.parentNode);
   const buttonElement = await parentHandle.$('.btn-greet'); // 使用类选择器
-  console.log(consoleColor["红色"], new Date().toLocaleTimeString())
+  console.log(consoleColor["蓝色"], new Date().toLocaleTimeString())
   await buttonElement.click({debugHighlight:true,delay: getRandomSecondsPrecise()})
-  console.log(consoleColor["红色"], new Date().toLocaleTimeString())
+  console.log(consoleColor["蓝色"], new Date().toLocaleTimeString())
   // const text = await buttonElement.evaluate(node => node.textContent);
   return true;
 }
@@ -133,15 +134,15 @@ const getGreetingBtn = async(frame,geek) => {
 /** 定位打招呼确认按钮 */
 const getConfirmBtn = async(frame,geek) => {
   await frame.waitForSelector("div.dialog-chat-greeting .btn", {
-    timeout: 5000,
+    timeout: timeoutInterval,
     visible: true
   })
   const dialogChatGreetingBtn = await frame.$("div.dialog-chat-greeting .btn");
   // debugger
   if(dialogChatGreetingBtn) {
-    console.log(consoleColor["红色"], new Date().toLocaleTimeString())
+    console.log(consoleColor["蓝色"], new Date().toLocaleTimeString())
     await dialogChatGreetingBtn.click({debugHighlight:true,delay: 3000})
-    console.log(consoleColor["红色"], new Date().toLocaleTimeString())
+    console.log(consoleColor["蓝色"], new Date().toLocaleTimeString())
     return true;
   }
 }

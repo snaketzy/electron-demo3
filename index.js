@@ -32,6 +32,7 @@ import { delay } from "./utils/Tools.js";
 import express from "express";
 import http from "http";
 import dayjs from 'dayjs';
+import {start} from "repl";
 // import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 // dayjs.extend(customParseFormat);
 
@@ -60,6 +61,8 @@ let isGeekListProcessing = false;
 let onlineRange = [];
 /** 工作间歇 单位 分钟; 接受渲染进程的赋值*/
 let workingGap = 30;
+/** 是否工作时间 */
+let isWorkingTime = true;
 /** 本次运行开始时间 */
 let latestBeginTime = undefined;
 /** 是否暂停 */
@@ -81,46 +84,60 @@ let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire =  (page) => {
-  console.log(consoleColor["蓝色"],"检查扫码登录是否失效");
-  let isWorkingTime = true;
   const start = performance.now();
   scanToLoginCheckInterval = setTimeout( () => {
-    console.log(consoleColor["红色"],"循环检查扫码登录是否失效")
+    console.log(consoleColor["蓝色"],"checkScanToLoginIsExpire -> 循环检查扫码登录是否失效")
     if(!isWorkingTime) {
-      console.log(consoleColor["红色"],"非工作时间")
-      console.log("实际延迟:", performance.now() - start, "ms");
-      checkScanToLoginIsExpire(page);
+      // console.log(consoleColor["红色"],"checkScanToLoginIsExpire -> 非工作时间")
+      // console.log("实际延迟:", performance.now() - start, "ms");
+      checkScanToLoginIsExpire(page)
     } else {
       // console.log("实际延迟:", performance.now() - start, "ms");
-      doCheckScanToLoginIsExpire(page)
+      doCheckScanToLoginIsExpire(page).then((result) => {
+        // console.log(result)
+        if(result){
+          checkScanToLoginIsExpire(page)
+        }
+      })
     }
   }, timeoutInterval)
 }
 
 /** 检查扫码登录是否过期 */
 const doCheckScanToLoginIsExpire = async(page) => {
-  scanToLogin(page)
-  console.log(consoleColor["蓝色"], "checkScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
-  if(!page.url().includes("web/user/?ka=header-login")) {
+  console.log(consoleColor["蓝色"], "doCheckScanToLoginIsExpire -> 当前页面URL为：", page.url(), new Date().toLocaleTimeString())
+  if(!page.url().includes(ComponentsObject["登录/注册"].url)) {
+    // 如果当前url路径不是登录，则说明已登录，跳转业务模块处理逻辑
     clearTimeout(scanToLoginCheckInterval)
     scanToLoginCheckInterval = null;
-    moduleProcessSchema(page)
+    await moduleProcessSchema(page)
+    console.log(consoleColor["蓝色"], "doCheckScanToLoginIsExpire 跳转【业务模块处理逻辑】")
+    return false
   } else {
-    // dashboardWindow.webContents.send("sendMessageToRender", {
-    //   module: ComponentsObject["登录/注册"].name,
-    //   action: "扫码登录",
-    // });
-    await page.waitForSelector("button[ka='refresh_app_sao_qrcode']",{
-      timeout: 50000,
-      visible: true
-    })
-    const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
-    if(refreshBtn) {
-      clearTimeout(scanToLoginCheckInterval) // 清除循环器
-      scanToLoginCheckInterval = null;
-      handleCheckScanToLoginIsExpire(page, refreshBtn) // 获取新qrcode
-    } else {
-      checkScanToLoginIsExpire(page)
+    clearTimeout(scanToLoginCheckInterval) // 清除循环器
+    scanToLoginCheckInterval = null;
+    let start = performance.now();
+    console.log(consoleColor["蓝色"],`doCheckScanToLoginIsExpire【切换到扫码登陆】开始`);
+    await scanToLogin(page)
+    console.log(consoleColor["蓝色"],`doCheckScanToLoginIsExpire【切换到扫码登陆】结束,${ performance.now() - start} ms`);
+    try {
+      await page.waitForSelector("button[ka='refresh_app_sao_qrcode']",{
+        timeout: timeoutInterval,
+        visible: true
+      })
+      const refreshBtn = await page.$("button[ka='refresh_app_sao_qrcode']");
+      // 如果存在刷新获取新二维码按钮
+      if(refreshBtn) {
+        await handleCheckScanToLoginIsExpire(page, refreshBtn) // 获取新qrcode
+        console.log(consoleColor["蓝色"],`定位并点击【刷新】按钮`)
+        return true
+      } else {
+        console.log(consoleColor["蓝色"],`无【刷新】按钮`)
+        return true
+      }
+    } catch (error) {
+      console.log(consoleColor["红色"],`定位【刷新】按钮异常`)
+      return true
     }
   }
 }
@@ -143,7 +160,7 @@ const checkDesktopDialog = (page) => {
         checkDesktopDialog(page)
       }
     } catch(error) {
-      console.log(consoleColor["红色"], "checkDesktopDialog: no desktopDialog")
+      console.log(consoleColor["红色"], "checkDesktopDialog: 定位desktopDialog异常")
       checkDesktopDialog(page)
     }
   }, timeoutInterval)
@@ -153,7 +170,6 @@ const checkDesktopDialog = (page) => {
 const handleCheckScanToLoginIsExpire = async(page, btn) => {
   delay(timeoutInterval).then(async() => {
     await btn.click({debugHighlight:true})
-    checkScanToLoginIsExpire(page)
   })
 }
 
@@ -361,7 +377,7 @@ const main = async () => {
       if(bodyJson.code === 0) {
         dashboardWindow.webContents.send("sendMessageToRender", {
           module: ComponentsObject["全局"].name,
-          action: "返回招聘者信息",
+          action: "从getUserInfo返回招聘者信息",
           data: userInfo
         });
       }
@@ -378,14 +394,22 @@ const main = async () => {
       }
     }
     // 扫码登录时，重新加载页面
-    // if(url.includes("requests")){
-    //   const body = await response.text();
-    //   const bodyJson = JSON.parse(body);
-    //   if(bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]){
-    //     // console.log(bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"])
-    //     page.reload()
-    //   }
-    // }
+    if(url.includes("requests")){
+      const body = await response.text();
+      const bodyJson = JSON.parse(body);
+      if(bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]){
+        console.log(consoleColor["蓝色"],bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"])
+        // page.reload()
+        if(!userInfo) {
+          userInfo = bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;
+          dashboardWindow.webContents.send("sendMessageToRender", {
+            module: ComponentsObject["全局"].name,
+            action: "从requests返回招聘者信息",
+            data: userInfo
+          });
+        }
+      }
+    }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
       if(isGeekListProcessing) {
@@ -400,6 +424,7 @@ const main = async () => {
         const jobId = new URLSearchParams(url.split("?")[1]).get("jobId");
         const jobInfo = onlineJobList.find((job) => job.encryptId === jobId);
         clearTimeout(scanToLoginCheckInterval)
+        scanToLoginCheckInterval = null;
         // console.log(`响应: ${response.status()} ${response.url()}`);
         // 如需获取响应体，注意这可能消耗较多内存且降低性能
         const body = await response.text();
@@ -528,26 +553,22 @@ const getToken = async() => {
   }
 }
 
-/** 扫码登陆 */
+/** 切换到扫码登陆 */
 const scanToLogin = async(page) => {
   try {
-    if(page.url().includes(ComponentsObject["登录/注册"].url)) {
-      const qrBtnExist = await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path,{
-        timeout: 10000,
-        visible: true
-      })
-      if(qrBtnExist) {
-        const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
-        if(qrBtn) {
-          delay(timeoutInterval).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
-          return
-        }
+    const qrBtnExist = await page.waitForSelector(ComponentsObject["登录/注册"].children["APP扫码登陆"].path,{
+      timeout: timeoutInterval,
+      visible: true
+    })
+    // 存在qrBtnExist，说明当前处于用户名登录态，需要切换扫码登陆态
+    if(qrBtnExist) {
+      const qrBtn = await page.$(ComponentsObject["登录/注册"].children["APP扫码登陆"].path)
+      if(qrBtn) {
+        delay(timeoutInterval).then(() => routeToMenu(page,ComponentsObject["登录/注册"].children["APP扫码登陆"]))
       }
-    } else {
-      debugger
     }
   } catch (err) {
-    console.log(consoleColor["红色"],"控制台异常：", err)
+    console.log(consoleColor["红色"],"scanToLogin 控制台异常：")
   }
 }
 

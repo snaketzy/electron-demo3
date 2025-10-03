@@ -8,10 +8,11 @@ import dayjs from 'dayjs';
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
-  console.log("开始【沟通】模块处理逻辑")
+  console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
 
   // 切换到未读消息
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
+    timeout: timeoutInterval,
     visible: true
   })
   const unreadButton = await page.$("div.chat-message-filter-left :last-child");
