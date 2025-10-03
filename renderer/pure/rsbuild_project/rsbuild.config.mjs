@@ -37,7 +37,7 @@ export default defineConfig({
   },
   output: { // https://rsbuild.rs/zh/guide/basic/output-files
     distPath: { // https://rsbuild.rs/zh/config/output/dist-path
-      root: process.env.NODE_ENV === "release" ? 'dist/pre' : "dist/pro" // https://rsbuild.rs/zh/guide/advanced/env-vars
+      root: process.env.NODE_ENV === "release" ? 'dist/pre' : "dist/pro", // https://rsbuild.rs/zh/guide/advanced/env-vars
       // root: 'dist/pre'
     },
     sourceMap: { // https://rsbuild.rs/zh/config/output/source-map
@@ -59,6 +59,7 @@ export default defineConfig({
       assets: '[name].[contenthash:8][ext]',
     }
   },
+
   dev: {
     progressBar: true // https://rsbuild.rs/zh/config/dev/progress-bar
   }

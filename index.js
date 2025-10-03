@@ -4,7 +4,8 @@ import {
   session,
   net,
   screen,
-  ipcMain
+  ipcMain,
+  protocol
 } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
@@ -28,10 +29,14 @@ import { GetBossHttpData } from "./GetHttpData.js";
 import url from "url";
 import path from "path";
 import { delay } from "./utils/Tools.js";
+import express from "express";
+import http from "http";
 import dayjs from 'dayjs';
 // import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 // dayjs.extend(customParseFormat);
 
+/** 本地http服务器 */
+let server;
 /** boss机器人窗口 */
 let bossWindow;
 /** boss机器人工作台 */
@@ -59,6 +64,8 @@ let workingGap = 30;
 let latestBeginTime = undefined;
 /** 是否暂停 */
 let isPaused = false;
+/** 登陆是否过期 */
+let loginIsExpired = false;
 
 process.title = "Boss机器人";
 app.setName("Boss机器人")
@@ -74,14 +81,17 @@ let __dirname = path.dirname(__filename);
 
 /** 检查扫码登录是否失效 */
 const checkScanToLoginIsExpire =  (page) => {
-  let isWorkingTime = false;
+  console.log(consoleColor["蓝色"],"检查扫码登录是否失效");
+  let isWorkingTime = true;
   const start = performance.now();
   scanToLoginCheckInterval = setTimeout( () => {
+    console.log(consoleColor["红色"],"循环检查扫码登录是否失效")
     if(!isWorkingTime) {
       console.log(consoleColor["红色"],"非工作时间")
       console.log("实际延迟:", performance.now() - start, "ms");
       checkScanToLoginIsExpire(page);
     } else {
+      // console.log("实际延迟:", performance.now() - start, "ms");
       doCheckScanToLoginIsExpire(page)
     }
   }, timeoutInterval)
@@ -133,13 +143,13 @@ const checkDesktopDialog = (page) => {
         checkDesktopDialog(page)
       }
     } catch(error) {
-      console.log(consoleColor["红色"], "checkDesktopDialog: no desk")
+      console.log(consoleColor["红色"], "checkDesktopDialog: no desktopDialog")
       checkDesktopDialog(page)
     }
   }, timeoutInterval)
 }
 
-/** 登录状态失效时的处理 */
+/** 登录状态失效，出现刷新二维码时的处理 */
 const handleCheckScanToLoginIsExpire = async(page, btn) => {
   delay(timeoutInterval).then(async() => {
     await btn.click({debugHighlight:true})
@@ -226,14 +236,14 @@ const main = async () => {
   const dashboardWindowHeight = 270; // 窗口高度为屏幕高度的3/4，可根据需要调整
   const dashboardWindowX = Math.floor(dashboardWindowWidth / 16); // x坐标设置为0，即紧贴屏幕左边缘
   const dashboardWindowY = Math.floor((screenHeight - dashboardWindowHeight) / 16); // 计算y坐标以使窗口在垂直方向上居中
-  const bossWindowX = dashboardWindowX;
-  const bossWindowY = dashboardWindowY + dashboardWindowHeight ;
+  const bossWindowX = dashboardWindowX + 5;
+  const bossWindowY = dashboardWindowY + dashboardWindowHeight - 5;
 
 
   bossWindow = new BrowserWindow({
     x: bossWindowX,
     y: bossWindowY,
-    width: 1366,
+    width: 1356,
     height: 600,
     icon: path.join(__dirname, 'assets/favicon.ico'),
     webPreferences:{
@@ -248,9 +258,16 @@ const main = async () => {
     resizable: false,
     frame: false
   });
+  bossWindow.on("restore", () => {
+    dashboardWindow.restore();
+  })
   // 保持窗口隐藏后持续渲染，以便puppeteer可以定位
   bossWindow.webContents.setFrameRate(30)
+  // 打开调试工具
+  // bossWindow.webContents.openDevTools();
   setBossWindow(bossWindow)
+
+  const page = await pie.getPage(browser, bossWindow);
 
   // const url = "https://www.zhipin.com/web/chat/job/list";
 
@@ -273,7 +290,13 @@ const main = async () => {
   })
   setDashboardWindow(dashboardWindow)
   // dashboardWindow.loadFile("renderer/pure/index.html")
-  dashboardWindow.loadURL("http://localhost:9188")
+  // dashboardWindow.loadURL("http://localhost:9188")
+
+  // 启动 HTTP 服务器
+  startServer().then(port => {
+    console.log(consoleColor["蓝色"],`当前启动的http地址为 http://localhost:${port}`);
+    dashboardWindow.loadURL(`http://localhost:${port}`);
+  });
 
   dashboardWindow.webContents.on("did-finish-load", async () => {
     GetBossHttpData(bossWindow)
@@ -285,7 +308,19 @@ const main = async () => {
     checkDesktopDialog(page);
   })
 
-  const page = await pie.getPage(browser, bossWindow);
+  dashboardWindow.on("closed", () => {
+    bossWindow.close()
+  })
+
+  dashboardWindow.on('minimize', () => {
+    bossWindow.minimize();
+  })
+
+  dashboardWindow.on('restore', () => {
+    bossWindow.restore();
+  })
+
+
 
   page.on("load", (event) => {
     // debugger
@@ -315,6 +350,7 @@ const main = async () => {
     if(url.includes("getUserInfo")) {
       const body = await response.text();
       const bodyJson = JSON.parse(body);
+
       console.log(consoleColor["蓝色"], "getUserInfo:",bodyJson)
       if(bodyJson.code === 0 && bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]) {
         userInfo = bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"].zpData;  
@@ -322,13 +358,13 @@ const main = async () => {
       if(bodyJson.code === 0 && bodyJson.zpData.userId) {
         userInfo = bodyJson.zpData
       }
-
-      dashboardWindow.webContents.send("sendMessageToRender", {
-        module: ComponentsObject["全局"].name,
-        action: "返回招聘者信息",
-        data: userInfo
-      });
-
+      if(bodyJson.code === 0) {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["全局"].name,
+          action: "返回招聘者信息",
+          data: userInfo
+        });
+      }
 
       // 登陆失效状态，目前不走此逻辑分支
       if(bodyJson.code === 7) {
@@ -341,6 +377,15 @@ const main = async () => {
         }
       }
     }
+    // 扫码登录时，重新加载页面
+    // if(url.includes("requests")){
+    //   const body = await response.text();
+    //   const bodyJson = JSON.parse(body);
+    //   if(bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"]){
+    //     // console.log(bodyJson.zpData["/wapi/zpuser/wap/getUserInfo.json"])
+    //     page.reload()
+    //   }
+    // }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
       if(isGeekListProcessing) {
@@ -401,13 +446,11 @@ const main = async () => {
   // test3(page)
   // test4(page)
   
-
-  
   dashboardWindow.on("move", () => {
     clearTimeout(dashboardWindow.moveTimeout);
     dashboardWindow.moveTimeout = setTimeout(() => {
       updateSecondWindowPosition();
-    }, 100);
+    }, 1);
   })
   handleRenderer()
 };
@@ -500,6 +543,8 @@ const scanToLogin = async(page) => {
           return
         }
       }
+    } else {
+      debugger
     }
   } catch (err) {
     console.log(consoleColor["红色"],"控制台异常：", err)
@@ -514,5 +559,39 @@ const routeToMenu = async(page, routeElement) => {
   await element.click({debugHighlight:true})
 }
 
+/** 创建 HTTP 服务器 */
+async function startServer() {
+  return new Promise((resolve, reject) => {
+    const serverApp = express();
+
+    // 提供静态文件服务
+    serverApp.use(express.static(path.join(__dirname, '/renderer/pure/rsbuild_project/dist/pro')));
+
+    // 添加 API 路由示例
+    serverApp.get('/api/data', (req, res) => {
+      res.json({ message: '来自 Electron 服务器的数据' });
+    });
+
+    // 动态获取可用端口
+    const serverInstance = http.createServer(serverApp);
+    serverInstance.listen(0, () => { // 0 表示自动选择端口
+      const port = serverInstance.address().port;
+      console.log(`HTTP 服务器运行在端口 ${port}`);
+      server = serverInstance;
+      resolve(port);
+    });
+
+    serverInstance.on('error', reject);
+  });
+}
+
+
+app.on('window-all-closed', () => {
+  if (server) {
+    server.close();
+    console.log('HTTP 服务器已停止');
+  }
+  if (process.platform !== 'darwin') app.quit();
+})
 
 main();
