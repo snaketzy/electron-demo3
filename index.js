@@ -410,6 +410,10 @@ const main = async () => {
         }
       }
     }
+    if(url.includes("wapi/zppassport/user/logout")){
+      console.log(consoleColor["蓝色"],"退出登录 wapi/zppassport/user/logout");
+      dashboardWindow.close()
+    }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
       if(isGeekListProcessing) {
