@@ -1,7 +1,7 @@
 {
   "name": "BossAutomateRobot",
   "description": "Boss自动化机器人",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "type": "module",
   "repository": "https://github.com/snaketzy/electron-demo3.git",
@@ -10,8 +10,9 @@
   "scripts": {
     "start": "chcp 65001 && electron . ",
     "automate": "node ./Automate.js",
+    "patchupdate": "npm version patch --no-git-tag-version",
     "pacakge": "electron-builder --dir",
-    "portable": "electron-builder --dir --win portable",
+    "portable": "node -e \"console.log('当前时间是：' + new Date().toLocaleString())\" && npm run patchupdate && electron-builder --dir --win portable",
     "msi": "electron-builder --win"
   },
   "dependencies": {
