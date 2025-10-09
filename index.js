@@ -11,8 +11,6 @@ import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
 // import { createCursor, installMouseHelper } from "ghost-cursor";
 import {
-  element1,
-  element2,
   ComponentsObject,
   createMenu,
   consoleColor,
@@ -27,12 +25,11 @@ import { handleChatModule } from "./modules/ChatModule.js";
 import { GetBossHttpData } from "./GetHttpData.js";
 
 import url from "url";
-import path from "path";
+import path, {extname} from "path";
 import { delay } from "./utils/Tools.js";
 import express from "express";
 import http from "http";
 import dayjs from 'dayjs';
-import {start} from "repl";
 // import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 // dayjs.extend(customParseFormat);
 
@@ -337,7 +334,6 @@ const main = async () => {
   })
 
 
-
   page.on("load", (event) => {
     // debugger
     // scanToLogin(page)
@@ -607,6 +603,7 @@ async function startServer() {
     });
 
     serverInstance.on('error', reject);
+
   });
 }
 
@@ -616,7 +613,10 @@ app.on('window-all-closed', () => {
     server.close();
     console.log('HTTP 服务器已停止');
   }
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    console.log('App已退出');
+    app.quit();
+  }
 })
 
 main();

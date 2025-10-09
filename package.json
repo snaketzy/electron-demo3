@@ -1,7 +1,7 @@
 {
   "name": "BossAutomateRobot",
   "description": "Boss自动化机器人",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "main": "index.js",
   "type": "module",
   "repository": "https://github.com/snaketzy/electron-demo3.git",
