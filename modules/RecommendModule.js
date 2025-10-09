@@ -1,7 +1,7 @@
 import { BrowserWindow, app, session, net } from "electron";
 import pie from "puppeteer-in-electron";
 import puppeteer from "puppeteer-core";
-import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token} from "../config.js";
+import {ComponentsObject, consoleColor, dashboardWindow, funcContinue, isWorkingTime, timeoutInterval, token} from "../config.js";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
 
 /** 
@@ -14,14 +14,6 @@ import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
  */
 export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, resolve) => {
   console.log(geekList[0])
-  let funcContinue = 0;
-  if(!funcContinue) {
-    await delay(timeoutInterval);
-    console.log(consoleColor["蓝色"],"测试中，跳过handleRecommendModule流程")
-    resolve("完成");
-    return
-  }
-  return
 
   for(const [index,geek] of geekList.entries()) {
     try {

@@ -18,7 +18,8 @@ import {
   setTokenExpireStart,
   timeoutInterval,
   setDashboardWindow,
-  setBossWindow
+  setBossWindow,
+  isWorkingTime
 } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
@@ -39,7 +40,6 @@ let server;
 let bossWindow;
 /** boss机器人工作台 */
 let dashboardWindow;
-
 /** 扫码登录定时检测器 */
 let scanToLoginCheckInterval;
 /** 桌面端弹框检测 */
@@ -58,8 +58,6 @@ let isGeekListProcessing = false;
 let onlineRange = [];
 /** 工作间歇 单位 分钟; 接受渲染进程的赋值*/
 let workingGap = 30;
-/** 是否工作时间 */
-let isWorkingTime = true;
 /** 本次运行开始时间 */
 let latestBeginTime = undefined;
 /** 是否暂停 */
@@ -87,11 +85,14 @@ const checkScanToLoginIsExpire =  (page) => {
     if(!isWorkingTime) {
       // console.log(consoleColor["红色"],"checkScanToLoginIsExpire -> 非工作时间")
       // console.log("实际延迟:", performance.now() - start, "ms");
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: "checkScanToLoginIsExpire",
+        action: `非工作时间，不执行业务操作`,
+      });
       checkScanToLoginIsExpire(page)
     } else {
       // console.log("实际延迟:", performance.now() - start, "ms");
       doCheckScanToLoginIsExpire(page).then((result) => {
-        // console.log(result)
         if(result){
           checkScanToLoginIsExpire(page)
         }
@@ -197,10 +198,11 @@ const moduleProcessSchema = async(page) => {
       })
       break;
     }
-    // 推荐牛人模块,因此模块接口请求有特殊判断，因此不走此处理分支
+    // 推荐牛人模块,因此模块接口请求有特殊判断，只在【切换工作状态】时通过定时器触发此处理分支
     // case moduleUrl.includes("web/chat/recommend"):{
-    //   clearTimeout(scanToLoginCheckInterval)
-    //   handleRecommendModule(page, geekList)
+    //   await delay(timeoutInterval)
+    //   await routeToMenu(page, ComponentsObject["沟通"])
+    //   checkScanToLoginIsExpire(page);
     //   break;
     // }
   }
@@ -412,6 +414,14 @@ const main = async () => {
     }
     // 推荐牛人列表数据
     if(url.includes("zpjob/rec/geek/list")) {
+      if(!isWorkingTime) {
+        // 非工作时间，不执行业务操作
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["推荐牛人"].name,
+          action: `非工作时间，不执行业务操作`,
+        });
+        checkScanToLoginIsExpire(page);
+      }
       if(isGeekListProcessing) {
         return
       } else {

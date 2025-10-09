@@ -9,7 +9,6 @@ import dayjs from 'dayjs';
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
-
   // 切换到未读消息
   await page.waitForSelector("div.chat-message-filter-left :last-child",{
     timeout: timeoutInterval,
@@ -23,10 +22,7 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
     module: ComponentsObject["沟通"].name,
     action: "切换到【未读】标签",
   });
-  await delay(timeoutInterval);
-  resolve("本轮沟通模块业务处理完毕")
-  return
-
+  await delay(timeoutInterval)
   const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
   if(locationResult) {
     dashboardWindow.webContents.send("sendMessageToRender", {
@@ -40,7 +36,6 @@ export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve)
 
 /** 定位每个未读对话，并获得对应的对话记录 */
 const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
-  let funcContinue = 1;
   await page.waitForSelector("div.user-list div[role='group'] > div, div.no-data",{
     timeout: 5000,
     visible: true
@@ -77,39 +72,33 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
             action: `从boss获取和【${text.trim()}】的历史聊天记录`,
           });
           await delay(timeoutInterval);
-          const geekInfoResult = await geekInfoResponse.json();
           dashboardWindow.webContents.send("sendMessageToRender", {
             module: ComponentsObject["沟通"].name,
             action: `从boss获取【${text.trim()}】的信息`,
           });
+          const geekInfoResult = await geekInfoResponse.json();
+
           await delay(timeoutInterval);
-          const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
           dashboardWindow.webContents.send("sendMessageToRender", {
             module: ComponentsObject["沟通"].name,
-            action: `从大数据模型生成回复【${text.trim()}】的内容`,
+            action: `开始从大数据模型获取回复【${text.trim()}】的内容`,
           });
+          const chatContext = await fetchContext(historyMsgResult, geekInfoResult, userInfo);
+
           await delay(timeoutInterval);
           const replyMessageResult = await replyMessage(page,chatContext, text);
 
           // 如果可以交换手机和微信，就执行对应操作
           const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, text)
           console.log(replyMessageResult)
-          // if(index === 0) {
-          //   dashboardWindow.webContents.send("sendMessageToRender", {
-          //     module: ComponentsObject["沟通"].name,
-          //     action: `全部${unreadItems.length}个未读对话完成`,
-          //   });
-          //   // return "全部对话完成"
-          // }
+
           if(index === unreadItems.length - 1) {
             dashboardWindow.webContents.send("sendMessageToRender", {
               module: ComponentsObject["沟通"].name,
               action: `全部${unreadItems.length}个未读对话完成`,
             });
             await delay(timeoutInterval);
-            if(funcContinue === 1) {
-              // return "全部对话完成"
-            }
+            return "全部对话完成"
           }
         // }
         // else {
@@ -124,13 +113,9 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
       }
     }
   } else {
-    // debugger
     await delay(timeoutInterval);
-    if(funcContinue === 1) {
-      // return "全部对话完成"
-    }
+    return "全部对话完成"
   }
-  
 }
 
 /** 根据对话上下文，从接口获取话术 */
@@ -164,16 +149,33 @@ const fetchContext = async(historyMsgResult, geekInfoResult, userInfo) => {
         })
       });
       if(response.ok) {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["沟通"].name,
+          action: `从大数据模型获取回复【${geekInfo.name}】的内容，成功`,
+        });
         const body = await response.json()
         return body.data.scriptContent
       } else {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["沟通"].name,
+          action: `getscript，response failure`,
+        });
         console.log(consoleColor["红色"],response)
       }
     } else {
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: ComponentsObject["沟通"].name,
+        action: `ListrtCommunicationRecord，response failure`,
+      });
       console.log(consoleColor["红色"],submitChatResponse)
     }
   } catch(error) {
-    return error || "response failure"
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: ComponentsObject["沟通"].name,
+      action: `调用ListrtCommunicationRecord或getscript，异常，将返回【不回复话术】`,
+    });
+    console.log(consoleColor["红色"], error || "response failure" )
+    return undefined
   }
 }
 

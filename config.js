@@ -8,6 +8,18 @@ export const element2 = ".job-name-input";
 /** url前缀 */
 export const prefixUrl = "https://www.zhipin.com";
 
+/** 是否允许运行后续代码 */
+export let funcContinue = true;
+export const setIsFuncContinue = (result) => {
+  funcContinue = result;
+}
+
+/** 是否工作时间 */
+export let isWorkingTime = true;
+export const setIsWorkingTime = (result) => {
+  isWorkingTime = result;
+}
+
 export let dashboardWindow;
 export const setDashboardWindow = (window) => {
   dashboardWindow = window;
