@@ -20,6 +20,30 @@ export const setIsWorkingTime = (result) => {
   isWorkingTime = result;
 }
 
+/** 每日打招呼限额 */
+export let greetLimitDaily = {
+  "上午": 50,
+  "下午": 150,
+}
+export const setGreetLimitDaily = (am, pm) => {
+  greetLimitDaily = {
+    "上午": am,
+    "下午": pm,
+  }
+}
+
+/** 当日已打招呼数量 */
+export let greetedToday = {
+  "上午": 0,
+  "下午": 0,
+}
+export const setGreetedToday = (am, pm) => {
+  greetedToday = {
+    "上午": am,
+    "下午": pm,
+  }
+}
+
 export let dashboardWindow;
 export const setDashboardWindow = (window) => {
   dashboardWindow = window;

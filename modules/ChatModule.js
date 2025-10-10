@@ -8,29 +8,33 @@ import dayjs from 'dayjs';
 
 /** 沟通模块处理主逻辑 */
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
-  console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
-  // 切换到未读消息
-  await page.waitForSelector("div.chat-message-filter-left :last-child",{
-    timeout: timeoutInterval,
-    visible: true
-  })
-  const unreadButton = await page.$("div.chat-message-filter-left :last-child");
-  // await delay(getRandomSecondsPrecise())
-  await delay(timeoutInterval)
-  await unreadButton.click({debugHighlight:true})
-  dashboardWindow.webContents.send("sendMessageToRender", {
-    module: ComponentsObject["沟通"].name,
-    action: "切换到【未读】标签",
-  });
-  await delay(timeoutInterval)
-  const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
-  if(locationResult) {
+  try {
+    console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
+    // 切换到未读消息
+    await page.waitForSelector("div.chat-message-filter-left :last-child",{
+      timeout: timeoutInterval,
+      visible: true
+    })
+    const unreadButton = await page.$("div.chat-message-filter-left :last-child");
+    // await delay(getRandomSecondsPrecise())
+    await delay(timeoutInterval)
+    await unreadButton.click({debugHighlight:true})
     dashboardWindow.webContents.send("sendMessageToRender", {
       module: ComponentsObject["沟通"].name,
-      action: "本轮【沟通】模块业务处理完毕",
+      action: "切换到【未读】标签",
     });
-    await delay(timeoutInterval);
-    resolve("本轮沟通模块业务处理完毕")
+    await delay(timeoutInterval)
+    const locationResult = await locationUnreadItem(page,updateHistoryMsg, userInfo)
+    if(locationResult) {
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: ComponentsObject["沟通"].name,
+        action: "本轮【沟通】模块业务处理完毕",
+      });
+      await delay(timeoutInterval);
+      resolve("本轮沟通模块业务处理完毕")
+    }
+  } catch (error) {
+    console.error(error);
   }
 }
 
@@ -210,62 +214,70 @@ const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
 
 /** 定位消息输入框，并回复 */
 const replyMessage = async(page, chatContext, text) => {
-  if(!chatContext) {
-    debugger
-    return;
-  }
-  dashboardWindow.webContents.send("sendMessageToRender", {
-    module: ComponentsObject["沟通"].name,
-    action: `回复【${text.trim()}】中`,
-  });
-  const textArea = await page.$("div.boss-chat-editor-input");
-  const lines = chatContext.split("\n");
-  for (const line of lines) {
-    await page.type("div.boss-chat-editor-input", line ,{delay: typeDelay})
-    await page.keyboard.down('Shift');
+  try {
+    if(!chatContext) {
+      debugger
+      return;
+    }
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: ComponentsObject["沟通"].name,
+      action: `回复【${text.trim()}】中`,
+    });
+    const textArea = await page.$("div.boss-chat-editor-input");
+    const lines = chatContext.split("\n");
+    for (const line of lines) {
+      await page.type("div.boss-chat-editor-input", line ,{delay: typeDelay})
+      await page.keyboard.down('Shift');
+      await page.keyboard.press('Enter');
+      await page.keyboard.up('Shift');
+    }
     await page.keyboard.press('Enter');
-    await page.keyboard.up('Shift');
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: ComponentsObject["沟通"].name,
+      action: `回复【${text.trim()}】完成`,
+    });
+    return "回复完成"
+  } catch (error) {
+   console.error(error);
   }
-  await page.keyboard.press('Enter');
-  dashboardWindow.webContents.send("sendMessageToRender", {
-    module: ComponentsObject["沟通"].name,
-    action: `回复【${text.trim()}】完成`,
-  });
-  return "回复完成"
 }
 
 /** 交换手机和微信 */
 const applyCellPhoneAndWechat = async(page, text) => {
-  dashboardWindow.webContents.send("sendMessageToRender", {
-    module: ComponentsObject["沟通"].name,
-    action: `尝试和【${text.trim()}】交换【手机】及【微信】`,
-  });
-  return
-  let phoneResult = false;
-  let wechatResult = false;
-  await page.waitForSelector('span.operate-btn:not(.disabled)',{
-    timeout: 10000,
-    visible: true
-  });
-  await delay(2000)
-  const elements = await page.$$('span.operate-btn:not(.disabled)');
+  try {
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: ComponentsObject["沟通"].name,
+      action: `尝试和【${text.trim()}】交换【手机】及【微信】`,
+    });
+    return
+    let phoneResult = false;
+    let wechatResult = false;
+    await page.waitForSelector('span.operate-btn:not(.disabled)',{
+      timeout: 10000,
+      visible: true
+    });
+    await delay(2000)
+    const elements = await page.$$('span.operate-btn:not(.disabled)');
 
-  for (const element of elements) {
-    const text = await page.evaluate(el => el.textContent, element);
-    if (text.includes("换电话")) {
-      phoneResult = true;
-      await element.click({debugHighlight:true});
-      await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
-      // await delay(getRandomSecondsPrecise())
-      await delay(timeoutInterval)
-      const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
-      await phoneBtn.click({debugHighlight:true})
+    for (const element of elements) {
+      const text = await page.evaluate(el => el.textContent, element);
+      if (text.includes("换电话")) {
+        phoneResult = true;
+        await element.click({debugHighlight:true});
+        await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
+        // await delay(getRandomSecondsPrecise())
+        await delay(timeoutInterval)
+        const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
+        await phoneBtn.click({debugHighlight:true})
+      }
+      //  if (text.includes("换微信")) {
+      //   wechatResult = true;
+      //   await element.click({debugHighlight:true});
+      //   break;
+      // }
     }
-    //  if (text.includes("换微信")) {
-    //   wechatResult = true;
-    //   await element.click({debugHighlight:true});
-    //   break;
-    // }
+    return phoneResult
+  } catch (error) {
+    console.error(error);
   }
-  return phoneResult
 }
