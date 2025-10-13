@@ -31,6 +31,7 @@ import { delay } from "./utils/Tools.js";
 import express from "express";
 import http from "http";
 import dayjs from 'dayjs';
+import {handleGeekManageModule} from "./modules/GeekManageModule.js";
 // import * as customParseFormat from 'dayjs/plugin/customParseFormat';
 // dayjs.extend(customParseFormat);
 
@@ -142,7 +143,7 @@ const doCheckScanToLoginIsExpire = async(page) => {
 
 /**
  * 1、检查是否有桌面端弹框,如有则关闭
- * 2、检查当前运行时常，默认超过30分钟暂停10分钟
+ * 2、检查当前运行时长，默认超过30分钟暂停10分钟
  */
 const checkDesktopDialog = (page) => {
   checkDesktopDialogInterval = setTimeout(async() => {
@@ -205,6 +206,25 @@ const moduleProcessSchema = async(page) => {
     //   checkScanToLoginIsExpire(page);
     //   break;
     // }
+    // 牛人管理模块
+    case moduleUrl.includes("web/chat/geek/manage"):{
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: ComponentsObject["牛人管理"].name,
+        action: `已进入【${ComponentsObject["牛人管理"].name}】模块`,
+      });
+      const afterHandleGeekManageModule = new Promise((resolve) => {
+        return handleGeekManageModule(page, userInfo, resolve)
+      })
+      afterHandleGeekManageModule.then(async (val) => {
+        dashboardWindow.webContents.send("sendMessageToRender", {
+          module: ComponentsObject["沟通"].name,
+          action: `跳转【${ComponentsObject["沟通"].name}】模块`,
+        });
+        await delay(timeoutInterval)
+        await routeToMenu(page, ComponentsObject["沟通"])
+      })
+      break;
+    }
   }
 }
 
@@ -450,10 +470,11 @@ const main = async () => {
             isGeekListProcessing = false;
             dashboardWindow.webContents.send("sendMessageToRender", {
               module: ComponentsObject["推荐牛人"].name,
-              action: `跳转【${ComponentsObject["沟通"].name}】模块`,
+              action: `跳转【${ComponentsObject["牛人管理"].name}】模块`,
             });
             await delay(timeoutInterval)
-            await routeToMenu(page, ComponentsObject["沟通"])
+            // await routeToMenu(page, ComponentsObject["沟通"])
+            await routeToMenu(page, ComponentsObject["牛人管理"])
             checkScanToLoginIsExpire(page);
           })
         }
@@ -470,9 +491,14 @@ const main = async () => {
     //   // console.log(`对话历史记录: ${body}`);
     //   historyMsg = JSON.parse(body).zpData.messages;
     // }
+    // 推荐职位列表
+    if(url.includes("wapi/zpjob/job/recJobList")) {
+      const body = await response.text();
+      onlineJobList = JSON.parse(body).zpData.onlineJobList;
+    }
   });
 
-  getToken();
+  await getToken();
 
   createMenu();
   

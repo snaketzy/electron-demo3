@@ -181,6 +181,58 @@ export const ComponentsObject = {
       }
     }
   },
+  "牛人管理": {
+    name:"牛人管理",
+    type: "a",
+    element: "a",
+    path: `[ka="action-geek-management-click"]`,
+    url: "https://www.zhipin.com/web/chat/geek/manage",
+    children: {
+      "牛人列表": {
+        name:"牛人列表",
+        element: "div",
+        type:"div",
+        path: "",
+        url:"https://www.zhipin.com/web/frame/report/geek-manage",
+        children: {
+          "沟通": {
+            name:"沟通",
+            element:"div",
+            type:"div",
+            path:".ui-tablepro-fixed-right .ui-tablepro-row .operate-btn",
+            url:"",
+            children: {
+              "关闭": {
+                name:"沟通",
+                element:"div",
+                type:"div",
+                path:".bosschat-conversation-wrap .iboss-close",
+                url:"",
+                children: null
+              }
+            }
+          },
+          "搜索姓名": {
+            name:"搜索姓名",
+            element:"input",
+            type:"input",
+            path:"input.search-input",
+            url:"",
+            children: {
+              "清空" :{
+                name:"搜索姓名",
+                element:"i",
+                type:"i",
+                path:".iboss-guanbi",
+                url:"",
+                children: null
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "推荐牛人": {
     name:"推荐牛人",
     type: "a",
