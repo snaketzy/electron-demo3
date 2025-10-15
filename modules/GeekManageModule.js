@@ -58,8 +58,8 @@ const fetchCandidatePhone = async () => {
         action: `获取系统内候选人不存在手机号码的随机100人，成功`,
       });
       const body = await response.json()
-      // return body.data
-      return [{candidateName:"郑郭声"}]
+      return body.data
+      // return [{candidateName:"郑郭声"}] // 朱祝华
     } else {
       dashboardWindow.webContents.send("sendMessageToRender", {
         module: ComponentsObject["牛人管理"].name,
@@ -86,15 +86,15 @@ const handleRechatCandidateArray = async (page, frame,userInfo,rechatCandidateAr
         action: `处理【${candidate.candidateName}】的复聊`,
       });
       await handleRechatCandidate(page, frame, userInfo, candidate)
-      if(index === rechatCandidateArray.length - 1) {
-      // if(index === 9) {
+      // if(index === rechatCandidateArray.length - 1) {
+      if(index === 9) {
         dashboardWindow.webContents.send("sendMessageToRender", {
           module: ComponentsObject["牛人管理"].name,
           // action: `全部${rechatCandidateArray.length}个复聊对话完成`,
-          action: `指定10个复聊对话完成`,
+          action: `前10个复聊对话完成`,
         });
         await delay(timeoutInterval);
-        return "全部复聊对话完成"
+        return "前10个复聊对话完成"
       }
       // return
       // debugger
@@ -183,9 +183,9 @@ const doHandleRechatDialog = async (page, geekName) => {
   });
   const chatContext = await fetchContext(historyMsgResult, geekInfoResult, "3");
   await delay(timeoutInterval);
-  // const replyMessageResult = await replyMessage(page,chatContext, geekName, "3");
+  const replyMessageResult = await replyMessage(page,chatContext, geekName, "3");
   // 接受交换手机和微信申请
-  // const acceptApplyResult = await acceptApply(page,geekName, "3")
+  const acceptApplyResult = await acceptApply(page,geekName, "3")
   // 如果可以交换手机和微信，就执行对应操作
   const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, geekName, "3")
   return true;

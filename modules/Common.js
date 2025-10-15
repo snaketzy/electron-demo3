@@ -50,6 +50,7 @@ export const fetchContext = async(historyMsgResult, geekInfoResult, scriptType="
           action: `getscript，response failure`,
         });
         console.log(consoleColor["红色"],response)
+        return undefined
       }
     } else {
       dashboardWindow.webContents.send("sendMessageToRender", {
@@ -57,6 +58,7 @@ export const fetchContext = async(historyMsgResult, geekInfoResult, scriptType="
         action: `ListrtCommunicationRecord，response failure`,
       });
       console.log(consoleColor["红色"],submitChatResponse)
+      return undefined
     }
   } catch(error) {
     dashboardWindow.webContents.send("sendMessageToRender", {
@@ -126,6 +128,7 @@ export const replyMessage = async(page, chatContext, text, type="4") => {
     return "回复完成"
   } catch (error) {
     console.error(error);
+    return "回复异常"
   }
 }
 
@@ -166,9 +169,17 @@ export const applyCellPhoneAndWechat = async(page, text, type="4") => {
         // }
       }
     } else {
-      await page.waitForSelector('.iboss-phone')
-      const phoneBtn = await page.$('.iboss-phone')
+      await page.waitForSelector('span.iboss-phone:not(.disabled)',{
+        timeout: timeoutInterval,
+        visible: true
+      })
+      const element = await page.$('span.iboss-phone:not(.disabled)')
       phoneResult = true
+      await element.click({debugHighlight:true})
+      await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
+      // await delay(getRandomSecondsPrecise())
+      await delay(timeoutInterval)
+      const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
       await phoneBtn.click({debugHighlight:true})
     }
 

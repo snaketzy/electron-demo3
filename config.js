@@ -124,7 +124,7 @@ export const ComponentsObject = {
             name:"求简历",
             type:"div",
             element:"div",
-            path:"div.operate-exchange-left > div:nth-child(1)",
+            path:"div.operate-exchange-left > div:nth-child(1) > span.operate-btn:not(.disabled)",
             url:"",
             children:null
           },
@@ -132,7 +132,7 @@ export const ComponentsObject = {
             name:"换电话",
             type:"div",
             element:"div",
-            path:"div.operate-exchange-left > div:nth-child(2)",
+            path:"div.operate-exchange-left > div:nth-child(2) > span.operate-btn:not(.disabled)",
             url:"",
             children:null
           },
@@ -140,7 +140,7 @@ export const ComponentsObject = {
             name:"换微信",
             type:"div",
             element:"div",
-            path:"div.operate-exchange-left > div:nth-child(3)",
+            path:"div.operate-exchange-left > div:nth-child(3) > span.operate-btn:not(.disabled)",
             url:"",
             children:null
           },
@@ -148,7 +148,7 @@ export const ComponentsObject = {
             name:"约面试",
             type:"div",
             element:"div",
-            path:"div.operate-exchange-left > div:nth-child(4)",
+            path:"div.operate-exchange-left > div:nth-child(4) > div.operate-btn:not(.disabled)",
             url:"",
             children:null
           }
