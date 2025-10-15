@@ -642,9 +642,12 @@ async function startServer() {
     // 提供静态文件服务
     serverApp.use(express.static(path.join(__dirname, '/renderer/pure/rsbuild_project/dist/pro')));
 
-    // 添加 API 路由示例
-    serverApp.get('/api/data', (req, res) => {
-      res.json({ message: '来自 Electron 服务器的数据' });
+    // // 添加 API 路由示例
+    // serverApp.get('/api/data', (req, res) => {
+    //   res.json({ message: '来自 Electron 服务器的数据' });
+    // });
+    serverApp.get('/login', (req, res) => {
+      res.sendFile(path.join(__dirname, "/renderer/pure/rsbuild_project/dist/pro", 'index.html'));
     });
 
     // 动态获取可用端口
