@@ -10,8 +10,8 @@ import {acceptApply, applyCellPhoneAndWechat, fetchContext, replyMessage} from "
  */
 export const handleGeekManageModule = async(page, userInfo, resolve) => {
   try {
-    resolve("本轮牛人管理模块业务处理完毕")
-    return
+    // resolve("本轮牛人管理模块业务处理完毕")
+    // return
 
     const frames = page.frames();
     let frame = null;
