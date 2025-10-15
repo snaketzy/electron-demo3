@@ -326,12 +326,12 @@ const main = async () => {
   })
   setDashboardWindow(dashboardWindow)
   // dashboardWindow.loadFile("renderer/pure/index.html")
-  dashboardWindow.loadURL("http://localhost:9188/login")
+  // dashboardWindow.loadURL("http://localhost:9188/login")
 
   // 启动 HTTP 服务器
   startServer().then(port => {
     console.log(consoleColor["蓝色"],`当前启动的http地址为 http://localhost:${port}`);
-    // dashboardWindow.loadURL(`http://localhost:${port}/login`);
+    dashboardWindow.loadURL(`http://localhost:${port}/login`);
   });
 
   dashboardWindow.webContents.on("did-finish-load", async () => {
