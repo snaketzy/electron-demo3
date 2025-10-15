@@ -19,7 +19,7 @@ import {
   timeoutInterval,
   setDashboardWindow,
   setBossWindow,
-  isWorkingTime
+  isWorkingTime, setPage, page
 } from "./config.js";
 import { handleRecommendModule } from "./modules/RecommendModule.js";
 import { handleChatModule } from "./modules/ChatModule.js";
@@ -269,12 +269,11 @@ const main = async () => {
   const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
   const dashboardWindowWidth = Math.floor(screenWidth / 2); // 窗口宽度为屏幕宽度的一半
   // const dashboardWindowHeight = Math.floor(screenHeight * 0.75); // 窗口高度为屏幕高度的3/4，可根据需要调整
-  const dashboardWindowHeight = 270; // 窗口高度为屏幕高度的3/4，可根据需要调整
+  const dashboardWindowHeight = 280; // 窗口高度为屏幕高度的3/4，可根据需要调整
   const dashboardWindowX = Math.floor(dashboardWindowWidth / 16); // x坐标设置为0，即紧贴屏幕左边缘
   const dashboardWindowY = Math.floor((screenHeight - dashboardWindowHeight) / 16); // 计算y坐标以使窗口在垂直方向上居中
   const bossWindowX = dashboardWindowX + 5;
   const bossWindowY = dashboardWindowY + dashboardWindowHeight - 5;
-
 
   bossWindow = new BrowserWindow({
     x: bossWindowX,
@@ -304,6 +303,7 @@ const main = async () => {
   setBossWindow(bossWindow)
 
   const page = await pie.getPage(browser, bossWindow);
+  setPage(page)
 
   // const url = "https://www.zhipin.com/web/chat/job/list";
 
@@ -326,22 +326,16 @@ const main = async () => {
   })
   setDashboardWindow(dashboardWindow)
   // dashboardWindow.loadFile("renderer/pure/index.html")
-  // dashboardWindow.loadURL("http://localhost:9188")
+  dashboardWindow.loadURL("http://localhost:9188/login")
 
   // 启动 HTTP 服务器
   startServer().then(port => {
     console.log(consoleColor["蓝色"],`当前启动的http地址为 http://localhost:${port}`);
-    dashboardWindow.loadURL(`http://localhost:${port}`);
+    // dashboardWindow.loadURL(`http://localhost:${port}/login`);
   });
 
   dashboardWindow.webContents.on("did-finish-load", async () => {
     GetBossHttpData(bossWindow)
-
-    const url = ComponentsObject["登录/注册"].url;
-    await bossWindow.loadURL(url);
-    await delay(timeoutInterval)
-    checkScanToLoginIsExpire(page);
-    checkDesktopDialog(page);
   })
 
   dashboardWindow.on("closed", () => {
@@ -499,8 +493,6 @@ const main = async () => {
     }
   });
 
-  await getToken();
-
   createMenu();
   
   // test1(page)
@@ -514,8 +506,16 @@ const main = async () => {
       updateSecondWindowPosition();
     }, 1);
   })
-  handleRenderer()
 };
+
+/** 登陆完成后的操作 */
+const afterLoginSequence = async (page) => {
+  const url = ComponentsObject["登录/注册"].url;
+  await bossWindow.loadURL(url);
+  await delay(timeoutInterval)
+  checkScanToLoginIsExpire(page);
+  checkDesktopDialog(page);
+}
 
 // 更新boss窗口的函数
 const updateSecondWindowPosition = () => {
@@ -546,6 +546,12 @@ const handleRenderer = () => {
       return 'Response from main process';
     });
 
+
+    // 处理预加载脚本转发的渲染进程要求启动main的消息
+    ipcMain.handle('get-token', async (event, data) => {
+      getToken(data.userName, data.userPassword);
+    });
+
     ipcMain.handle("data-transfer" ,(event,data) => {
         console.log("data:", data)
     })
@@ -571,15 +577,15 @@ const handleRenderer = () => {
 }
 
 /** 获取token */
-const getToken = async() => {
+const getToken = async(userName, password) => {
   const response = await net.fetch('http://192.168.2.6:8080/api/Auth/login', {
     method:"post",
     headers: {
       'Content-Type': "application/json"
     },
     body: JSON.stringify({
-      username: "18916827968",
-      password: "111111"
+      username: userName,
+      password: password
     }) 
   });
   if(response.ok) {
@@ -587,6 +593,13 @@ const getToken = async() => {
     console.log(consoleColor["蓝色"],"请求token接口：", body.data.token)
     setToken(`Bearer ${body.data.token}`)
     setTokenExpireStart(new Date().getTime())
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: "登录",
+      action: "跳转工作台",
+    });
+    await afterLoginSequence(page)
+  } else {
+    debugger
   }
 }
 
@@ -660,4 +673,6 @@ app.on('window-all-closed', () => {
   }
 })
 
+/** 在渲染进程中，根据条件启动主进程 */
+handleRenderer()
 main();

@@ -1,5 +1,11 @@
 
-import { Menu } from "electron"
+import {BrowserWindow, Menu} from "electron"
+
+/** 设置page对象 */
+export let page;
+export const setPage = (pageObject) => {
+  page = pageObject
+}
 
 /** 发布职位 div */
 export const element1 = "div.add-btn";

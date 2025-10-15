@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import './Index.less';
 // import { Button, Toast } from "antd-mobile";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import * as Api from "../utils/api";
 import {
   isIos,
@@ -29,7 +29,7 @@ interface StateInterface {
   action: string;
 }
 
-/** 1、信息认证 */
+/** 控制台 */
 const Index = () => {
   let nextPageUrl = "";
   
@@ -42,6 +42,8 @@ const Index = () => {
   });
 
   const navigate = useNavigate();
+
+  const location = useLocation();
 
   const dispatch = useDispatch();
 
@@ -58,6 +60,13 @@ const Index = () => {
   const mobileField = Form.useWatch("mobile", index_form);
 
   useEffect(() => {
+
+    setState({
+      ...state,
+      company: location.state.userInfo.brandName,
+      name: location.state.userInfo.name,
+    })
+
     // 获取版本信息
     const versions = window.electronAPI?.getVersions();
     if (versions) {
@@ -67,7 +76,6 @@ const Index = () => {
     // 监听主进程发送的消息
     const handleUpdate = (event, data) => {
       console.log('Test Received update from main process:', data);
-      // debugger
       updateState({
         module: data.module,
         action: data.action,
@@ -83,7 +91,7 @@ const Index = () => {
       qrcodeUrl: location.href
     }))
     return () => {
-      window.electronAPI?.removeListener('sendMessageToRender', handleUpdate);
+      // window.electronAPI?.removeListener('sendMessageToRender', handleUpdate);
     };
   }, [])
 
@@ -136,7 +144,7 @@ const Index = () => {
       showBoss:!state.showBoss
     })
   };
-  index_form.setFieldsValue
+
   return (
     <div className="index-container">
       <Form

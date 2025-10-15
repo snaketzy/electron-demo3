@@ -6,18 +6,22 @@ import {
 } from "react-router-dom";
 import "./Index.less";
 
-import Index from './components/Index';
+
 import { Provider } from 'react-redux';
 import store from './store';
 
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
+import Index from './components/Index';
+import Login from "./components/Login";
+
 // 在入口文件全局扩展插件
 dayjs.extend(customParseFormat);
 
 const router = createBrowserRouter([
-  {path: "/",element: <Index />,}
+  {path: "/login",element: <Login />,},
+  {path: "/index",element: <Index />,}
 ], { basename: "/" });
 
 
