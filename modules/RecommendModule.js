@@ -13,8 +13,8 @@ import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
  * @param resolve promise
  */
 export const handleRecommendModule = async(page, geekList, userInfo, jobInfo, resolve) => {
-  resolve("完成");
-  return
+  // resolve("完成");
+  // return
 
   console.log(geekList[0])
   for(const [index,geek] of geekList.entries()) {

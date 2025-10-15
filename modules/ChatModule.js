@@ -11,7 +11,7 @@ import {applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   try {
     // resolve("本轮沟通模块业务处理完毕")
-    return
+    // return
 
     console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
     // 切换到未读消息
