@@ -8,6 +8,7 @@ import dayjs from 'dayjs';
 
 /** 根据对话上下文，从接口获取话术
  * 1、打招呼，2、主动联系话术，3、复聊话术，4、岗位相关话术
+ * 2、scriptType："3" 牛人管理 "4"沟通
  */
 export const fetchContext = async(historyMsgResult, geekInfoResult, scriptType="4") => {
   try {
@@ -38,28 +39,28 @@ export const fetchContext = async(historyMsgResult, geekInfoResult, scriptType="
       });
       if(response.ok) {
         dashboardWindow.webContents.send("sendMessageToRender", {
-          module: ComponentsObject["沟通"].name,
+          module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
           action: `从大数据模型获取回复【${geekInfo.name}】的内容，成功`,
         });
         const body = await response.json()
         return body.data.scriptContent
       } else {
         dashboardWindow.webContents.send("sendMessageToRender", {
-          module: ComponentsObject["沟通"].name,
+          module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
           action: `getscript，response failure`,
         });
         console.log(consoleColor["红色"],response)
       }
     } else {
       dashboardWindow.webContents.send("sendMessageToRender", {
-        module: ComponentsObject["沟通"].name,
+        module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
         action: `ListrtCommunicationRecord，response failure`,
       });
       console.log(consoleColor["红色"],submitChatResponse)
     }
   } catch(error) {
     dashboardWindow.webContents.send("sendMessageToRender", {
-      module: ComponentsObject["沟通"].name,
+      module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
       action: `调用ListrtCommunicationRecord或getscript，异常，将返回【不回复话术】`,
     });
     console.log(consoleColor["红色"], error || "response failure" )
@@ -99,14 +100,14 @@ export const assembleSubmitChatArray = (historyMsgResult,geekInfo) => {
 
 
 /** 定位消息输入框，并回复 */
-export const replyMessage = async(page, chatContext, text) => {
+export const replyMessage = async(page, chatContext, text, type="4") => {
   try {
     if(!chatContext) {
       debugger
       return;
     }
     dashboardWindow.webContents.send("sendMessageToRender", {
-      module: ComponentsObject["沟通"].name,
+      module: type === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
       action: `回复【${text.trim()}】中`,
     });
     const textArea = await page.$("div.boss-chat-editor-input");
@@ -119,7 +120,7 @@ export const replyMessage = async(page, chatContext, text) => {
     }
     await page.keyboard.press('Enter');
     dashboardWindow.webContents.send("sendMessageToRender", {
-      module: ComponentsObject["沟通"].name,
+      module: type === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
       action: `回复【${text.trim()}】完成`,
     });
     return "回复完成"
@@ -130,41 +131,79 @@ export const replyMessage = async(page, chatContext, text) => {
 
 
 /** 交换手机和微信 */
-export const applyCellPhoneAndWechat = async(page, text) => {
+export const applyCellPhoneAndWechat = async(page, text, type="4") => {
   try {
     dashboardWindow.webContents.send("sendMessageToRender", {
-      module: ComponentsObject["沟通"].name,
+      module: type === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
       action: `尝试和【${text.trim()}】交换【手机】及【微信】`,
     });
-    return
+
     let phoneResult = false;
     let wechatResult = false;
-    await page.waitForSelector('span.operate-btn:not(.disabled)',{
-      timeout: 10000,
-      visible: true
-    });
-    await delay(2000)
-    const elements = await page.$$('span.operate-btn:not(.disabled)');
+    await delay(timeoutInterval)
+    if(type === "4") {
+      await page.waitForSelector('span.operate-btn:not(.disabled)',{
+        timeout: timeoutInterval,
+        visible: true
+      });
+      const elements = await page.$$('span.operate-btn:not(.disabled)');
 
-    for (const element of elements) {
-      const text = await page.evaluate(el => el.textContent, element);
-      if (text.includes("换电话")) {
-        phoneResult = true;
-        await element.click({debugHighlight:true});
-        await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
-        // await delay(getRandomSecondsPrecise())
-        await delay(timeoutInterval)
-        const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
-        await phoneBtn.click({debugHighlight:true})
+      for (const element of elements) {
+        const text = await page.evaluate(el => el.textContent, element);
+        if (text.includes("换电话")) {
+          phoneResult = true;
+          await element.click({debugHighlight:true});
+          await page.waitForSelector('div.exchange-tooltip:not([style*="display: none"])');
+          // await delay(getRandomSecondsPrecise())
+          await delay(timeoutInterval)
+          const phoneBtn = await page.$('div.exchange-tooltip:not([style*="display: none"]) span.boss-btn-primary');
+          await phoneBtn.click({debugHighlight:true})
+        }
+        //  if (text.includes("换微信")) {
+        //   wechatResult = true;
+        //   await element.click({debugHighlight:true});
+        //   break;
+        // }
       }
-      //  if (text.includes("换微信")) {
-      //   wechatResult = true;
-      //   await element.click({debugHighlight:true});
-      //   break;
-      // }
+    } else {
+      await page.waitForSelector('.iboss-phone')
+      const phoneBtn = await page.$('.iboss-phone')
+      phoneResult = true
+      await phoneBtn.click({debugHighlight:true})
     }
+
     return phoneResult
   } catch (error) {
     console.error(error);
+    return false
+  }
+}
+
+/** 接受交换手机和微信 */
+export const acceptApply = async (page, text, type="4") => {
+  let acceptResult = false;
+  try {
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: type === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
+      action: `尝试接受【${text.trim()}】交换【手机】及【微信】`,
+    });
+
+    type === "4" ?
+    await page.waitForSelector('div.notice-blue-list div.op a:last-child',{
+      timeout: timeoutInterval,
+      visible: true
+    }) :
+    await page.waitForSelector('.message-card-buttons span:last-child',{
+      timeout: timeoutInterval,
+      visible: true
+    });
+
+    const element = type === "4" ? await page.$('div.notice-blue-list div.op a:last-child') : await page.$('.message-card-buttons span:last-child');
+    await element.click({debugHighlight:true});
+    acceptResult = true
+    return acceptResult;
+  } catch (error) {
+    console.error(error);
+    return acceptResult;
   }
 }

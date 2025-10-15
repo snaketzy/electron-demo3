@@ -215,13 +215,14 @@ const moduleProcessSchema = async(page) => {
       const afterHandleGeekManageModule = new Promise((resolve) => {
         return handleGeekManageModule(page, userInfo, resolve)
       })
-      afterHandleGeekManageModule.then(async (val) => {
+      afterHandleGeekManageModule.then(async () => {
         dashboardWindow.webContents.send("sendMessageToRender", {
           module: ComponentsObject["沟通"].name,
           action: `跳转【${ComponentsObject["沟通"].name}】模块`,
         });
         await delay(timeoutInterval)
         await routeToMenu(page, ComponentsObject["沟通"])
+        checkScanToLoginIsExpire(page);
       })
       break;
     }
@@ -610,10 +611,14 @@ const scanToLogin = async(page) => {
 
 /** 跳转指定菜单 */
 const routeToMenu = async(page, routeElement) => {
-  await page.waitForSelector(routeElement.path)
-  const element = await page.$(routeElement.path)
-  // delay(timeoutInterval).then(async() =>)
-  await element.click({debugHighlight:true})
+  try {
+    await page.waitForSelector(routeElement.path)
+    const element = await page.$(routeElement.path)
+    // delay(timeoutInterval).then(async() =>)
+    await element.click({debugHighlight:true})
+  } catch (err) {
+    console.log(err)
+  }
 }
 
 /** 创建 HTTP 服务器 */

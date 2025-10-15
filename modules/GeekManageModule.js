@@ -1,7 +1,7 @@
 import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token, typeDelay} from "../config.js";
 import {net} from "electron";
 import {delay} from "../utils/Tools.js";
-import {applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
+import {acceptApply, applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
 
 /**
  * 牛人管理模块处理逻辑
@@ -58,7 +58,8 @@ const fetchCandidatePhone = async () => {
         action: `获取系统内候选人不存在手机号码的随机100人，成功`,
       });
       const body = await response.json()
-      return body.data
+      // return body.data
+      return [{candidateName:"郑郭声"}]
     } else {
       dashboardWindow.webContents.send("sendMessageToRender", {
         module: ComponentsObject["牛人管理"].name,
@@ -85,8 +86,8 @@ const handleRechatCandidateArray = async (page, frame,userInfo,rechatCandidateAr
         action: `处理【${candidate.candidateName}】的复聊`,
       });
       await handleRechatCandidate(page, frame, userInfo, candidate)
-      // if(index === rechatCandidateArray.length - 1) {
-      if(index === 9) {
+      if(index === rechatCandidateArray.length - 1) {
+      // if(index === 9) {
         dashboardWindow.webContents.send("sendMessageToRender", {
           module: ComponentsObject["牛人管理"].name,
           // action: `全部${rechatCandidateArray.length}个复聊对话完成`,
@@ -166,7 +167,8 @@ const doHandleRechatDialog = async (page, geekName) => {
     return response.url().includes("geek/info");
   }, { timeout: timeoutInterval });
   await delay(timeoutInterval);
-  return true;
+
+  // return true;
 
   dashboardWindow.webContents.send("sendMessageToRender", {
     module: ComponentsObject["牛人管理"].name,
@@ -176,16 +178,16 @@ const doHandleRechatDialog = async (page, geekName) => {
   const geekInfoResult = await geekInfoResponse.json();
 
   dashboardWindow.webContents.send("sendMessageToRender", {
-
     module: ComponentsObject["牛人管理"].name,
     action: `开始从大数据模型获取回复【${geekName}】的内容`,
   });
   const chatContext = await fetchContext(historyMsgResult, geekInfoResult, "3");
   await delay(timeoutInterval);
-  const replyMessageResult = await replyMessage(page,chatContext, geekName);
+  // const replyMessageResult = await replyMessage(page,chatContext, geekName, "3");
+  // 接受交换手机和微信申请
+  // const acceptApplyResult = await acceptApply(page,geekName, "3")
   // 如果可以交换手机和微信，就执行对应操作
-  // const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, geekName)
-  console.log(replyMessageResult)
+  const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, geekName, "3")
   return true;
 }
 

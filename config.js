@@ -112,6 +112,47 @@ export const ComponentsObject = {
             children: null
           }
         }
+      },
+      "聊天操作container":{
+        name:"聊天操作container",
+        type:"div",
+        element:"div",
+        path:"div.operate-exchange-left",
+        url:"",
+        children: {
+          "求简历":{
+            name:"求简历",
+            type:"div",
+            element:"div",
+            path:"div.operate-exchange-left > div:nth-child(1)",
+            url:"",
+            children:null
+          },
+          "换电话":{
+            name:"换电话",
+            type:"div",
+            element:"div",
+            path:"div.operate-exchange-left > div:nth-child(2)",
+            url:"",
+            children:null
+          },
+          "换微信":{
+            name:"换微信",
+            type:"div",
+            element:"div",
+            path:"div.operate-exchange-left > div:nth-child(3)",
+            url:"",
+            children:null
+          },
+          "约面试":{
+            name:"约面试",
+            type:"div",
+            element:"div",
+            path:"div.operate-exchange-left > div:nth-child(4)",
+            url:"",
+            children:null
+          }
+        }
       }
     }
   },

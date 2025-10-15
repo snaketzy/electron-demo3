@@ -11,7 +11,7 @@ import {applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
 export const handleChatModule = async(page, updateHistoryMsg, userInfo, resolve) => {
   try {
     // resolve("本轮沟通模块业务处理完毕")
-    // return
+    return
 
     console.log(consoleColor["蓝色"], "handleChatModule -> 开始【沟通】模块处理逻辑")
     // 切换到未读消息
@@ -96,9 +96,10 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
           await delay(timeoutInterval);
           const replyMessageResult = await replyMessage(page,chatContext, text);
 
-          // 如果可以交换手机和微信，就执行对应操作
+          // 接受交换手机和微信申请
+          const acceptApplyResult = await acceptApply(page)
+          // 如果可以交换手机，就执行对应操作
           const applyCellPhoneAndWechatResult = await applyCellPhoneAndWechat(page, text)
-          console.log(replyMessageResult)
 
           if(index === unreadItems.length - 1) {
             dashboardWindow.webContents.send("sendMessageToRender", {
