@@ -1,5 +1,13 @@
 import { createSlice, current }  from "@reduxjs/toolkit";
 
+export interface iPagination {
+  pageSize: number;
+  current: number;
+  total?: number;
+  totalPages?: number;
+}
+
+
 export interface CommonState {
   [x: string]: string | undefined;
   frontIdCard: string;

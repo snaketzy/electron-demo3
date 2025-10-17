@@ -28,7 +28,14 @@ export default defineConfig({
     base: "/", // https://rsbuild.rs/zh/config/server/base
     port: 9188, // https://rsbuild.rs/zh/config/server/port
     proxy: {
-      "/api/*": "http://localhost:8090/$1"
+      // "/api/*": "http://localhost:8090/$1"
+      "/api": {
+        target: "http://192.168.2.6:8080",
+        changeOrigin: true,
+        pathRewrite: {
+          '^/api': '/api'
+        }
+      }
     },
     printUrls({ urls }) {
       console.log("启动时间：" + new Date().toLocaleString())

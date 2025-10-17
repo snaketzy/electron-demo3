@@ -585,7 +585,8 @@ const getToken = async(userName, password) => {
     },
     body: JSON.stringify({
       username: userName,
-      password: password
+      password: password,
+      isadminSide: "0"
     }) 
   });
   if(response.ok) {

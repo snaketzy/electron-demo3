@@ -256,6 +256,73 @@ const dataUrltoBlob = (dataurl) => {
   return new Blob([u8arr], { type: mime });
 };
 
+/**
+ * 设置一个Cookie
+ * @param {string} name - Cookie的名称
+ * @param {string} value - Cookie的值
+ * @param {number} days - Cookie有效的天数（可选）
+ */
+const setCookie = (name: string, value: string, days: number = 1)=> {
+  // 1. 构建基础Cookie字符串：名称=值
+  let cookieString = `${encodeURIComponent(name)}=${value}`;
+
+  // 2. 处理过期时间
+  if (days) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000); // 转换为毫秒
+    cookieString += `; expires=${expires.toUTCString()}`;
+  }
+
+  // 3. 设置路径和域（重要：确保在当前域和路径下可用）
+  cookieString += '; path=/'; // 使Cookie在整个网站下可用[5,6](@ref)
+  // 如果需要设置特定域名，可以添加如下（通常不需要，默认为当前域名）
+  // cookieString += `; domain=${window.location.hostname}`;
+
+  // 4. 可选：安全设置（仅在HTTPS连接下传输）
+  // if (location.protocol === 'https:') {
+  //     cookieString += '; Secure';
+  // }
+
+  // 5. 将Cookie写入浏览器
+  document.cookie = cookieString;
+}
+
+/**
+ * 读取指定名称的Cookie
+ * @param {string} name - 要读取的Cookie名称
+ * @returns {string|null} Cookie的值，如果不存在则返回null
+ */
+const getCookie = (name: string)=> {
+  // 对名称进行编码，以便处理特殊字符
+  const nameEQ = `${encodeURIComponent(name)}=`;
+  // 将所有Cookie按分号分割成数组
+  const ca = document.cookie.split(';');
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    // 去除每个Cookie字符串开头可能存在的空格
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    // 检查是否匹配目标Cookie名称
+    if (c.indexOf(nameEQ) === 0) {
+      return decodeURIComponent(c.substring(nameEQ.length, c.length));
+    }
+  }
+  return null; // 未找到该Cookie
+}
+
+/**
+ * 获取初始化分页对象
+ *
+ * @returns 初始化分页对象
+ */
+const getInitPagination = () => {
+  return {
+    pageSize: 25,
+    current: 1,
+    total: 0
+  };
+}
+
 
 export {
   appendUrlParams,
@@ -275,5 +342,8 @@ export {
   ScalarHeight,
   encodeBase64,
   decodeBase64,
-  dataUrltoBlob
+  dataUrltoBlob,
+  setCookie,
+  getCookie,
+  getInitPagination
 }
