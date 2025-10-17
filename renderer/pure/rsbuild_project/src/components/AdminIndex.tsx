@@ -17,7 +17,21 @@ import Dialog from "./common/Dialog/Dialog";
 import { useDispatch, useSelector } from 'react-redux';
 import { updateCommonState } from "../store/commonSlice";
 import { ApplicationState } from "../store";
-import {Button, Col, Descriptions, Divider, Form, Input, Row, Select, Table, TimePicker} from "antd";
+import {
+  Button,
+  Col,
+  Descriptions,
+  Divider,
+  Form,
+  Input,
+  message,
+  Popconfirm,
+  Row,
+  Select,
+  Table,
+  TimePicker,
+  Tooltip
+} from "antd";
 import * as dayjs from "dayjs";
 import * as fetch from "node-fetch";
 import {
@@ -25,12 +39,15 @@ import {
   initialSearchParams,
   SearchParams,
   updateAdminIndexState,
-  UserList
+  UserListType
 } from "../store/adminIndexSlice";
 import {ColumnProps} from "antd/es/table";
+import AdminUserEdit from "./AdminUserEdit";
 
 interface StateInterface {
   showAddUserModal: boolean;
+  showEditUserModal: boolean;
+  loading: boolean;
 }
 
 /** 管理后台 */
@@ -38,7 +55,9 @@ const AdminIndex = () => {
   let nextPageUrl = "";
   
   const [state, setState] = useState<StateInterface>({
-    showAddUserModal:false
+    showAddUserModal:false,
+    showEditUserModal:false,
+    loading: false
   });
 
   const navigate = useNavigate();
@@ -51,8 +70,10 @@ const AdminIndex = () => {
 
   const refObject = useRef<{
     searchParams: SearchParams;
+    user: UserListType | undefined;
   }>({
     searchParams: {...initialSearchParams},
+    user: undefined,
   })
 
   const [admin_index_form] = Form.useForm();
@@ -98,9 +119,44 @@ const AdminIndex = () => {
     console.error("error")
   }
 
+  const handleDeleteUser = async (record: UserListType) => {
+    setState({
+      ...state,
+      loading: true
+    })
+    try {
+      const res = await fetch(`/api/User/DeleteUser?id=${record.id}`,{
+        headers: {
+          'Content-Type': "application/json",
+          "Authorization": getCookie("token")
+        },
+      })
+      if(res.ok){
+        setState({
+          ...state,
+          loading: false
+        })
+        message.success(`删除${record.name}成功`)
+        fetchData(refObject.current.searchParams)
+      } else {
+        setState({
+          ...state,
+          loading: false
+        })
+      }
+    } catch (error) {
+      setState({
+        ...state,
+        loading: false
+      })
+      message.error(error)
+      console.log(error)
+    }
+  }
+
   const formLayoutItem = {wrapperCol: {span: 18}, labelCol: {span: 6}}
 
-  const adminTableColumns: Array<ColumnProps<UserList>> = [
+  const adminTableColumns: Array<ColumnProps<UserListType>> = [
     {
       title: "用户ID",
       dataIndex: "id",
@@ -182,22 +238,24 @@ const AdminIndex = () => {
     {
       title: "操作",
       align:"center",
-      width: 240,
+      width: 210,
       fixed: "right",
-      render: (text: string, record: UserList) => {
+      render: (text: string, record: UserListType) => {
         return (
           <>
             <Button
               type="link"
-
+              onClick={() => {
+                refObject.current.user = record;
+                setState({...state, showEditUserModal: true})
+              }}
             >
               修改
             </Button>
             <Button
               type="link"
-
             >
-              删除密码
+              <Popconfirm title={`确认删除【${record.name}】`} onConfirm={() =>  handleDeleteUser(record)}>删除</Popconfirm>
             </Button>
             <Button
               type="link"
@@ -217,8 +275,8 @@ const AdminIndex = () => {
 
   const pagination = {
     ...adminIndexModule.pagination,
-    onChange: { onChange },
-    onShowSizeChange: { onChange },
+    onChange: onChange,
+    onShowSizeChange: onChange,
     pageSizeOptions: ["25", "50", "100"],
     showTotal: (total: number) => `共${ total }条`,
     showSizeChanger: true,
@@ -233,7 +291,7 @@ const AdminIndex = () => {
         className="admin-index-form"
         onFinish={ onAdminIndexFormFinish }
         onFinishFailed={ onAdminIndexFormFailed }
-        name="form"
+        name="admin-index-form"
         form={ admin_index_form }
         layout="horizontal"
       >
@@ -297,7 +355,10 @@ const AdminIndex = () => {
         </Col>
         <Col span={8}>
           <Button className="toggle-boss-window" size="large" onClick={() => {
-
+            setState({
+              ...state,
+              showAddUserModal: true
+            })
           }} type="default" block={true}>新增用户</Button>
         </Col>
       </Row>
@@ -309,6 +370,26 @@ const AdminIndex = () => {
         scroll={{ x: 1000 }}
         pagination={ pagination }
       />
+      {
+        state.showEditUserModal &&
+        <AdminUserEdit
+          mode= "edit"
+          user = { refObject.current.user }
+          onClose={() => {
+            fetchData(refObject.current.searchParams)
+            setState({...state,showEditUserModal: false})
+          }} />
+      }
+      {
+        state.showAddUserModal &&
+        <AdminUserEdit
+          mode= "add"
+          user = { refObject.current.user }
+          onClose={() => {
+            fetchData(refObject.current.searchParams)
+            setState({...state,showAddUserModal: false})
+          }} />
+      }
     </div>
   );
 };

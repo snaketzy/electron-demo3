@@ -12,7 +12,7 @@ export interface SearchParams {
   pageSize: number;
 }
 
-export interface UserList {
+export interface UserListType {
   id: number;
   name: string;
   userName: string;
@@ -32,7 +32,7 @@ export interface UserList {
 export interface AdminIndexSliceType {
   searchParams: SearchParams;
   pagination: iPagination;
-  userList: UserList[];
+  userList: UserListType[];
 }
 
 /** 初始化查询入参 */

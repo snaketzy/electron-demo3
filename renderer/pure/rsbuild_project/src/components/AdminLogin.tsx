@@ -39,24 +39,9 @@ const AdminLogin = () => {
   const nameField = Form.useWatch("userName", admin_login_form);
 
   useEffect(() => {
-    // 监听主进程发送的消息
-    const handleUpdate = (event, data) => {
-      console.log('Test Received update from main process:', data);
-
-      if(data.data) {
-        setState({
-          ...state,
-          loading: false
-        })
-        navigate("/index", { state: { userInfo: data.data } })
-      }
-
-    };
-
-    window.electronAPI?.sendMessageToRender(handleUpdate);
 
     return () => {
-      // window.electronAPI?.removeListener('sendMessageToRender', handleUpdate);
+
     };
   }, [])
 
@@ -84,6 +69,9 @@ const AdminLogin = () => {
           ...state,
           loading: false
         })
+        dispatch(updateCommonState({
+          loginUserInfo: body.data
+        }))
         setCookie("token", `Bearer ${body.data.token}`)
         navigate("/admin-index")
       } else {
@@ -117,7 +105,7 @@ const AdminLogin = () => {
         className="admin-login-form"
         onFinish={ onAdminLoginFormFinish }
         onFinishFailed={ onAdminLoginFormFailed }
-        name="form"
+        name="admin-logn-form"
         form={ admin_login_form }
         layout="vertical"
       >

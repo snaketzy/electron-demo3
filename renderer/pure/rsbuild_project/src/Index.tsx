@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   createBrowserRouter,
-  RouterProvider,
+  RouterProvider
 } from "react-router-dom";
 import "./Index.less";
 
@@ -19,15 +19,13 @@ import Login from "./components/Login";
 import AdminLogin from "./components/AdminLogin";
 import AdminIndex from "./components/AdminIndex";
 import {ConfigProvider} from "antd";
+import SystemLayout from "./components/SystemLayout";
 
 // 在入口文件全局扩展插件
 dayjs.extend(customParseFormat);
 
 const router = createBrowserRouter([
-  {path: "/admin-index",element: <AdminIndex />,},
-  {path: "/login",element: <Login />,},
-  {path: "/index",element: <Index />,},
-  {path: "/",element: <AdminLogin />,}
+  {path: "*",element: <SystemLayout />,}
 ], { basename: "/" });
 
 
