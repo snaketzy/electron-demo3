@@ -43,10 +43,12 @@ import {
 } from "../store/adminIndexSlice";
 import {ColumnProps} from "antd/es/table";
 import AdminUserEdit from "./AdminUserEdit";
+import AdminPasswordEdit from "./AdminPasswordEdit";
 
 interface StateInterface {
   showAddUserModal: boolean;
   showEditUserModal: boolean;
+  showPasswordModal: boolean;
   loading: boolean;
 }
 
@@ -57,6 +59,7 @@ const AdminIndex = () => {
   const [state, setState] = useState<StateInterface>({
     showAddUserModal:false,
     showEditUserModal:false,
+    showPasswordModal:false,
     loading: false
   });
 
@@ -68,50 +71,70 @@ const AdminIndex = () => {
 
   const adminIndexModule: AdminIndexSliceType = useSelector((state: ApplicationState) => state.adminIndexModule);
 
-  const refObject = useRef<{
-    searchParams: SearchParams;
-    user: UserListType | undefined;
-  }>({
+  const refObject = useRef({
     searchParams: {...initialSearchParams},
     user: undefined,
   })
 
   const [admin_index_form] = Form.useForm();
-  const mobileField = Form.useWatch("mobile", admin_index_form);
 
   useEffect(() => {
     fetchData(refObject.current.searchParams)
   }, [])
 
   const fetchData = async (params) => {
-    const values = admin_index_form.getFieldsValue();
-    const res = await fetch("/api/User/QueryListUser",{
-      method:"post",
-      headers: {
-        'Content-Type': "application/json",
-        "Authorization": getCookie("token")
-      },
-      body: JSON.stringify({
-        ...params
+    try {
+      setState({
+        ...state,
+        loading: true
       })
-    })
-    if(res.ok){
-      const body = await res.json();
-      dispatch(updateAdminIndexState({
-        userList: body.data,
-        pagination: {
-          ...adminIndexModule.pagination,
-          pageIndex: body.pageIndex,
-          pageSize: body.pageSize,
-          total: body.totalCount
-        }
-      }))
+      const res = await fetch("/api/User/QueryListUser",{
+        method:"post",
+        headers: {
+          'Content-Type': "application/json",
+          "Authorization": getCookie("token")
+        },
+        body: JSON.stringify({
+          ...params
+        })
+      })
+      if(res.ok){
+        setState({
+          ...state,
+          loading: false
+        })
+        const body = await res.json();
+        dispatch(updateAdminIndexState({
+          searchParams: params,
+          userList: body.data,
+          pagination: {
+            ...adminIndexModule.pagination,
+            pageIndex: body.pageIndex,
+            pageSize: body.pageSize,
+            total: body.totalCount
+          }
+        }))
+      } else {
+        setState({
+          ...state,
+          loading: false
+        })
+      }
+    } catch (error) {
+      setState({
+        ...state,
+        loading: false
+      })
+      message.error(error.message);
+      console.log(error);
     }
   }
 
   const onAdminIndexFormFinish = (values: any) => {
-    debugger
-
+    fetchData({
+      ...refObject.current.searchParams,
+      ...values
+    })
   }
 
   const onAdminIndexFormFailed = (error:any) => {
@@ -205,7 +228,7 @@ const AdminIndex = () => {
       dataIndex: "status",
       align:"center",
       width: 150,
-      render: (text: string) => +text ? "生效" : "失效",
+      render: (text: string) => +text ? "启用" : "禁用",
     },
     {
       title: "创建时间",
@@ -259,7 +282,10 @@ const AdminIndex = () => {
             </Button>
             <Button
               type="link"
-
+              onClick={() => {
+                refObject.current.user = record;
+                setState({...state, showPasswordModal: true})
+              }}
             >
               修改密码
             </Button>
@@ -270,7 +296,19 @@ const AdminIndex = () => {
   ]
 
   const onChange = (page: number, pageSize: number ) => {
-
+    if(pagination.current === page) {
+      refObject.current.searchParams = {
+        ...refObject.current.searchParams,
+        pageSize: pageSize,
+        pageIndex: 1
+      }
+    } else {
+      refObject.current.searchParams = {
+        ...refObject.current.searchParams,
+        pageIndex: 1
+      }
+    }
+    fetchData(refObject.current.searchParams)
   }
 
   const pagination = {
@@ -301,6 +339,10 @@ const AdminIndex = () => {
               name="name"
               label="用户名"
               initialValue=""
+              getValueFromEvent = {(e) => {
+                const value = e.target.value.trim();
+                return value;
+              }}
             >
               <Input placeholder = "请输入用户名"></Input>
             </Form.Item>
@@ -322,8 +364,8 @@ const AdminIndex = () => {
             >
               <Select placeholder="请选择">
                 <Select.Option value={""}>全部</Select.Option>
-                <Select.Option value={"1"}>是</Select.Option>
-                <Select.Option value={"0"}>否</Select.Option>
+                <Select.Option value={1}>是</Select.Option>
+                <Select.Option value={0}>否</Select.Option>
               </Select>
             </Form.Item>
           </Col>
@@ -344,13 +386,13 @@ const AdminIndex = () => {
       </Form>
       <Row gutter={16}>
         <Col span={8}>
-          <Button className="toggle-boss-window" size="large" onClick={() => {
-
-          }} type="primary" block={true}>查询</Button>
+          <Button className="toggle-boss-window" size="large" type="primary" onClick={ () => admin_index_form.submit() } block={true}>查询</Button>
         </Col>
         <Col span={8}>
           <Button className="toggle-boss-window" size="large" onClick={() => {
-
+              refObject.current.searchParams = {...initialSearchParams};
+              admin_index_form.resetFields()
+              fetchData(refObject.current.searchParams)
           }} type="ghost" block={true}>重置</Button>
         </Col>
         <Col span={8}>
@@ -369,6 +411,7 @@ const AdminIndex = () => {
         columns={ adminTableColumns }
         scroll={{ x: 1000 }}
         pagination={ pagination }
+        loading={ state.loading }
       />
       {
         state.showEditUserModal &&
@@ -388,6 +431,15 @@ const AdminIndex = () => {
           onClose={() => {
             fetchData(refObject.current.searchParams)
             setState({...state,showAddUserModal: false})
+          }} />
+      }
+      {
+        state.showPasswordModal &&
+        <AdminPasswordEdit
+          user = { refObject.current.user }
+          onClose={() => {
+            fetchData(refObject.current.searchParams)
+            setState({...state,showPasswordModal: false})
           }} />
       }
     </div>

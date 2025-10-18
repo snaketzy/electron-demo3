@@ -12,7 +12,7 @@ import Dialog from "./common/Dialog/Dialog";
 import { useDispatch, useSelector } from 'react-redux';
 import { updateCommonState } from "../store/commonSlice";
 import { ApplicationState } from "../store";
-import {Button, Descriptions, Form, Input, TimePicker, Modal} from "antd";
+import {Button, Descriptions, Form, Input, TimePicker, Modal, message} from "antd";
 import * as dayjs from "dayjs";
 import Validator, {MOBILE} from "../utils/validator";
 
@@ -90,6 +90,7 @@ const AdminLogin = () => {
         ...state,
         loading: false
       })
+      message.error(error.message)
       console.log(error);
     }
   }

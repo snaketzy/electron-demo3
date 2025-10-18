@@ -6,18 +6,14 @@ import {
   getUrlParam, setCookie,
 } from "../utils/commonUtil";
 
-import { SIGN_SUCCESS_PAGE } from "../utils/constant";
-import Dialog from "./common/Dialog/Dialog";
 import { useDispatch, useSelector } from 'react-redux';
 import { updateCommonState } from "../store/commonSlice";
 import { ApplicationState } from "../store";
 import {Button, Descriptions, Form, Input, TimePicker, Modal, Radio, message} from "antd";
 import * as dayjs from "dayjs";
 import Validator, {MOBILE} from "../utils/validator";
-import {UserInfo} from "node:os";
 import { UserListType } from "../store/adminIndexSlice";
 import {isNumber} from "../utils/regexValid";
-import {required} from "zod/v4/mini";
 
 interface PropsOwn {
   onClose: () => void;
@@ -42,6 +38,7 @@ const AdminUserEdit = (props: PropsOwn) => {
   const commonModule = useSelector((state: ApplicationState) => state.commonModule);
 
   const [admin_user_edit_form] = Form.useForm();
+  const userpassword = Form.useWatch("userpassword", admin_user_edit_form);
 
   useEffect(() => {
 
@@ -105,15 +102,6 @@ const AdminUserEdit = (props: PropsOwn) => {
     } catch (error) {
       console.log(error)
     }
-  }
-
-  if(props.mode === "add") {
-    admin_user_edit_form.setFieldsValue({
-      name:"",
-      userName:"",
-      wzUserID:"",
-      isadminSide: undefined
-    })
   }
 
   return (
@@ -185,8 +173,35 @@ const AdminUserEdit = (props: PropsOwn) => {
                   required: true, message: "登录密码不能为空"
                 }
               ]}
+              normalize= {(value: string, prevValue: string, prevValues: any) => {
+                return value.trim()
+              }}
             >
               <Input.Password placeholder = "请输入登录密码" />
+            </Form.Item>
+            <Form.Item
+              name="bypassuserpassword"
+              label="再次输入登录密码"
+              initialValue=""
+              rules={[
+                {
+                  required: true, message: "请再次输入登录密码"
+                },
+                {
+                  validator: (rule, value, callback) => {
+                    if(value.trim() === userpassword){
+                      callback()
+                    } else {
+                      callback(new Error("两次输入的密码不同"))
+                    }
+                  }
+                }
+              ]}
+              normalize= {(value: string, prevValue: string, prevValues: any) => {
+                return value.trim()
+              }}
+            >
+              <Input.Password placeholder = "请再次输入登录密码" />
             </Form.Item>
           </>
         }
