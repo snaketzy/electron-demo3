@@ -66,8 +66,8 @@ let isPaused = false;
 /** 登陆是否过期 */
 let loginIsExpired = false;
 
-process.title = "Boss机器人";
-app.setName("Boss机器人")
+process.title = "Boss自动化机器人";
+app.setName("Boss自动化机器人")
 
 /** 更新沟通数据 */
 const updateHistoryMsg = () => {

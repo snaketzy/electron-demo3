@@ -1,7 +1,7 @@
 {
   "name": "BossAutomateRobot",
   "description": "Boss自动化机器人",
-  "version": "1.0.10",
+  "version": "1.0.12",
   "main": "index.js",
   "type": "module",
   "repository": "https://github.com/snaketzy/electron-demo3.git",
@@ -24,6 +24,7 @@
     "puppeteer-in-electron": "^3.0.5"
   },
   "devDependencies": {
+    "asarmor": "^2.0.0",
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12"
   },
@@ -36,6 +37,7 @@
     "win": {
       "target": "portable",
       "icon": "icons/icon.ico"
-    }
+    },
+    "afterPack": "./myAfterPackHook.cjs"
   }
 }
