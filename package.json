@@ -1,7 +1,7 @@
 {
   "name": "BossAutomateRobot",
   "description": "Boss自动化机器人",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "main": "index.js",
   "type": "module",
   "repository": "https://github.com/snaketzy/electron-demo3.git",
@@ -34,6 +34,9 @@
   "build": {
     "appId": "com.example.bossautomaterobot",
     "productName": "Boss自动化机器人",
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
     "win": {
       "target": "portable",
       "icon": "icons/icon.ico"
