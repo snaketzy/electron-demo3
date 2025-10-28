@@ -218,3 +218,38 @@ export const acceptApply = async (page, text, type="4") => {
     return acceptResult;
   }
 }
+
+/** 更新手机和微信 */
+export const updatePhoneAndWeixin = async (geekInfo, scriptType="4") => {
+  try {
+    const response = await net.fetch(`http://192.168.2.6:8080/api/Candidate/updatePhoneOrWXCode?bossCandidateID=${geekInfo.uid}&mobilePhone=${geekInfo.phone || ""}&WXCode=${geekInfo.weixin ||""}`, {
+      method:"get",
+      headers: {
+        'Content-Type': "application/json",
+        'Authorization': token,
+      }
+    });
+    if(response.ok) {
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
+        action: `更新候选人手机和微信数据，成功`,
+      });
+      const body = await response.json()
+      return "更新候选人手机和微信数据，成功"
+    } else {
+      dashboardWindow.webContents.send("sendMessageToRender", {
+        module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
+        action: `更新候选人手机和微信数据，失败`,
+      });
+      return "更新候选人手机和微信数据，失败"
+    }
+  } catch (error) {
+    dashboardWindow.webContents.send("sendMessageToRender", {
+      module: scriptType === "4" ? ComponentsObject["沟通"].name : ComponentsObject["牛人管理"].name,
+      action: `更新候选人手机和微信数据，失败`,
+    });
+    console.log(consoleColor["红色"],error)
+    return "更新候选人手机和微信数据，失败"
+  }
+
+}

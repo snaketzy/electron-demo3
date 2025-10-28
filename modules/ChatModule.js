@@ -4,7 +4,7 @@ import puppeteer from "puppeteer-core";
 import { delay, getRandomSecondsPrecise } from "../utils/Tools.js";
 import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token, typeDelay,} from "../config.js";
 import dayjs from 'dayjs';
-import {applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
+import {applyCellPhoneAndWechat, fetchContext, replyMessage, updatePhoneAndWeixin} from "./Common.js";
 
 
 /** 沟通模块处理主逻辑 */
@@ -85,6 +85,8 @@ const locationUnreadItem = async(page,updateHistoryMsg, userInfo) => {
             action: `从boss获取【${text.trim()}】的信息`,
           });
           const geekInfoResult = await geekInfoResponse.json();
+
+          const updatePhoneResult = await updatePhoneAndWeixin(geekInfoResult.zpData.data)
 
           await delay(timeoutInterval);
           dashboardWindow.webContents.send("sendMessageToRender", {

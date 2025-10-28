@@ -1,7 +1,7 @@
 import {ComponentsObject, consoleColor, dashboardWindow, timeoutInterval, token, typeDelay} from "../config.js";
 import {net} from "electron";
 import {delay} from "../utils/Tools.js";
-import {acceptApply, applyCellPhoneAndWechat, fetchContext, replyMessage} from "./Common.js";
+import {acceptApply, applyCellPhoneAndWechat, fetchContext, replyMessage, updatePhoneAndWeixin} from "./Common.js";
 
 /**
  * 牛人管理模块处理逻辑
@@ -179,6 +179,8 @@ const doHandleRechatDialog = async (page, geekName) => {
   });
   const historyMsgResult = await historyMsgResponse.json();
   const geekInfoResult = await geekInfoResponse.json();
+
+  const updatePhoneResult = await updatePhoneAndWeixin(geekInfoResult.zpData.data, "3")
 
   dashboardWindow.webContents.send("sendMessageToRender", {
     module: ComponentsObject["牛人管理"].name,
